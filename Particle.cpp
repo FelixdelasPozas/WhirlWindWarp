@@ -234,21 +234,32 @@ void Particle::paint(QPainter* painter, const QStyleOptionGraphicsItem* option, 
 
   for(int i = 0; i < m_state.numPoints; ++i)
   {
+    auto color = m_color[i];
+
     QPen pen;
-    pen.setColor(m_color[i]);
+    pen.setColor(color);
     pen.setWidth(m_width[i]);
-    painter->setPen(pen);
-    painter->drawPoint(transform(m_x[i]) * width, transform(m_y[i]) * height);
 
     if(m_tailX[i].size() != 0)
     {
-      QPen pen;
-      painter->drawLine(transform(m_x[i]) * width, transform(m_y[i]) * height, transform(m_tailX[i].last()) * width, transform(m_tailY[i].last()) * height);
-
-      for(int j = 0; j < m_tailX[i].size() - 1; ++j)
+      for(int j = m_tailX[i].size() - 1; j > 0; --j)
       {
-        painter->drawLine(transform(m_tailX[i].at(j)) * width, transform(m_tailY[i].at(j)) * height, transform(m_tailX[i].at(j+1)) * width, transform(m_tailY[i].at(j+1)) * height);
+        color.setRedF(color.redF() * 0.75);
+        color.setGreenF(color.greenF() * 0.75);
+        color.setBlueF(color.blueF() * 0.75);
+        pen.setColor(color);
+        painter->setPen(pen);
+
+        painter->drawLine(transform(m_tailX[i].at(j)) * width, transform(m_tailY[i].at(j)) * height, transform(m_tailX[i].at(j-1)) * width, transform(m_tailY[i].at(j-1)) * height);
       }
+
+      pen.setColor(m_color[i]);
+      painter->setPen(pen);
+      painter->drawLine(transform(m_x[i]) * width, transform(m_y[i]) * height, transform(m_tailX[i].last()) * width, transform(m_tailY[i].last()) * height);
     }
+
+    painter->setPen(pen);
+    painter->drawPoint(transform(m_x[i]) * width, transform(m_y[i]) * height);
+
   }
 }
