@@ -158,7 +158,8 @@ void WhirlWindWarp::preUpdateState()
     }
 
     m_state.hue = 180 + 180 * m_generator->get();
-    m_state.numPoints = 1000;
+    // a point for every 3500 pixels.
+    m_state.numPoints = (scene()->width() * scene()->height()) / 3500;
     m_state.tailLenght = 5;
 
     // create stars
