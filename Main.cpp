@@ -32,7 +32,7 @@
 // C++
 #include <iostream>
 
-const int EXPECTED_FPS = 120;
+const int EXPECTED_FPS = 60;
 
 //-----------------------------------------------------------------
 void myMessageOutput(QtMsgType type, const QMessageLogContext &context, const QString &msg)

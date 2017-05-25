@@ -177,6 +177,7 @@ void Particle::init(const int numPoints)
 {
   m_x.reserve(numPoints);
   m_y.reserve(numPoints);
+  m_width.reserve(numPoints);
   m_tailX.reserve(numPoints);
   m_tailY.reserve(numPoints);
   m_color.reserve(numPoints);
@@ -185,6 +186,8 @@ void Particle::init(const int numPoints)
   {
     m_x << m_generator->get();
     m_y << m_generator->get();
+
+    m_width << 1 + (::rand() % 3);
 
     m_tailX << QList<double>();
     m_tailY << QList<double>();
@@ -198,6 +201,8 @@ void Particle::reset(const int point)
 {
   m_x[point] = m_generator->get();
   m_y[point] = m_generator->get();
+
+  m_width[point] = 1 + (::rand() % 3);
 
   m_tailX[point].clear();
   m_tailY[point].clear();
@@ -229,11 +234,15 @@ void Particle::paint(QPainter* painter, const QStyleOptionGraphicsItem* option, 
 
   for(int i = 0; i < m_state.numPoints; ++i)
   {
-    painter->setPen(m_color[i]);
+    QPen pen;
+    pen.setColor(m_color[i]);
+    pen.setWidth(m_width[i]);
+    painter->setPen(pen);
     painter->drawPoint(transform(m_x[i]) * width, transform(m_y[i]) * height);
 
     if(m_tailX[i].size() != 0)
     {
+      QPen pen;
       painter->drawLine(transform(m_x[i]) * width, transform(m_y[i]) * height, transform(m_tailX[i].last()) * width, transform(m_tailY[i].last()) * height);
 
       for(int j = 0; j < m_tailX[i].size() - 1; ++j)

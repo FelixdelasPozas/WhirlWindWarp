@@ -73,6 +73,7 @@ class Particle
     State               &m_state;      /** application state.                     */
     QList<double>        m_x;          /** x position [-1.0, 1.0].                */
     QList<double>        m_y;          /** y position [-1.0, 1.0].                */
+    QList<int>           m_width;      /** trail width [1-3].                     */
     QList<QList<double>> m_tailX;      /** previous x positions.                  */
     QList<QList<double>> m_tailY;      /** previous y positions.                  */
     int                  m_tailLength; /** number of previous positions to store. */
