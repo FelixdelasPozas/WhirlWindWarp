@@ -23,14 +23,13 @@
 
 // C++
 #include <cmath>
-#include <iostream>
 
 // Qt
 #include <QGraphicsScene>
 #include <QPainter>
 
 //--------------------------------------------------------------------
-Particle::Particle(State &state, const int number, NumberGenerator* generator)
+Particle::Particle(State &state, const unsigned int number, NumberGenerator* generator)
 : m_generator   (generator)
 , m_state       (state)
 , m_tailLength  {state.tailLenght}
@@ -173,7 +172,7 @@ void Particle::advance(int phase)
 }
 
 //--------------------------------------------------------------------
-void Particle::init(const int numPoints)
+void Particle::init(const unsigned int numPoints)
 {
   m_x.reserve(numPoints);
   m_y.reserve(numPoints);
@@ -182,7 +181,7 @@ void Particle::init(const int numPoints)
   m_tailY.reserve(numPoints);
   m_color.reserve(numPoints);
 
-  for(int i = 0; i < numPoints; ++i)
+  for(unsigned int i = 0; i < numPoints; ++i)
   {
     m_x << m_generator->get();
     m_y << m_generator->get();

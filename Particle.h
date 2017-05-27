@@ -23,9 +23,6 @@
 // Qt
 #include <QGraphicsItem>
 
-// C++
-#include <random>
-
 class State;
 class NumberGenerator;
 
@@ -39,12 +36,11 @@ class Particle
   public:
     /** \brief Particle class constructor.
      * \param[in] state application state.
-     * \param[in] id particle number.
+     * \param[in] number total number of particles.
      * \param[in] generator random number generator.
-     * \param[in] distribution uniform distribution in [-1.0, 1.0]
      *
      */
-    explicit Particle(State &state, const int id, NumberGenerator *generator);
+    explicit Particle(State &state, const unsigned int number, NumberGenerator *generator);
 
     /** \brief Particle class virtual destructor.
      *
@@ -58,10 +54,11 @@ class Particle
     virtual void advance(int phase) override;
 
   private:
-    /** \brief Initializes the particle container with randon numbers.
+    /** \brief Initializes the particle container with random numbers.
+     * \param[in] number number of points.
      *
      */
-    void init(const int numPoints);
+    void init(const unsigned int number);
 
     /** \brief Resets the values of the given point index.
      * \param[in] point point index.

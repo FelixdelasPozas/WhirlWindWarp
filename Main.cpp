@@ -28,6 +28,11 @@
 #include <QIcon>
 #include <QDebug>
 #include <QDesktopWidget>
+#include <QMessageBox>
+#include <QCommandLineParser>
+#include <QWindow>
+#include <QHBoxLayout>
+#include <QTimer>
 
 // C++
 #include <iostream>
@@ -46,53 +51,141 @@ void myMessageOutput(QtMsgType type, const QMessageLogContext &context, const QS
 }
 
 //-----------------------------------------------------------------
+void showConfig()
+{
+  QMessageBox msgBox;
+  msgBox.setIcon(QMessageBox::Information);
+  msgBox.setWindowFlags(Qt::Dialog | Qt::CustomizeWindowHint | Qt::WindowTitleHint);
+  msgBox.setText("WindWhirlWarp screensaver doesn't have configurable options.");
+  msgBox.setStandardButtons(QMessageBox::Ok);
+  msgBox.exec();
+}
+
+//-----------------------------------------------------------------
+void showHelp()
+{
+  auto message = QString("WhirlWindWarp screensaver command line options:\n");
+  message += QString("/s or /S   Starts the screensaver.\n");
+  message += QString("/c or /C   Shows the configuration dialog.\n");
+  message += QString("/h or /H   Shows this help dialog.\n");
+
+  QMessageBox msgBox;
+  msgBox.setIcon(QMessageBox::Information);
+  msgBox.setWindowFlags(Qt::Dialog | Qt::CustomizeWindowHint | Qt::WindowTitleHint);
+  msgBox.setText(message);
+  msgBox.setStandardButtons(QMessageBox::Ok);
+  msgBox.exec();
+}
+
+//-----------------------------------------------------------------
 int main(int argc, char *argv[])
 {
   qInstallMessageHandler(myMessageOutput);
+  int resultValue = 0;
+
+  // QCommandLineParser uses unix-like '-' for flags, while windows uses '/'. There is no way for QCommandLineParser to adapt to it
+  // so we'll need to change all characters first. Also the 'c' option can have an optional value, and QCommandLineParser also doesn't
+  // support that, so we'll need to truncate the argument.
+  for(int i = 1; i < argc; ++i)
+  {
+    bool dash = false;
+    bool clear = false;
+    for(char *j = argv[i]; *j; ++j)
+    {
+      if(*j == '/')
+      {
+        *j = '-';
+        dash = true;
+      }
+      else
+      {
+        if(dash)
+        {
+          if(*j == 'c' || *j == 'C') clear = true;
+          dash = false;
+        }
+        else
+        {
+          if(clear)
+          {
+            *j = '\0';
+            break;
+          }
+        }
+      }
+    }
+  }
 
   QApplication app(argc, argv);
 
-  // allow only one instance
+  if(argc == 1)
+  {
+    showConfig();
+    return 0;
+  }
+
+  // allow only one instance running
   QSharedMemory guard;
   guard.setKey("WindWhirlWarp");
 
   if (!guard.create(1))
   {
-    QMessageBox msgBox;
-    msgBox.setWindowIcon(QIcon(":/WhirlWindWarp/app.ico"));
-    msgBox.setIcon(QMessageBox::Warning);
-    msgBox.setText("WindWhirlWarp screensaver is already running!");
-    msgBox.setStandardButtons(QMessageBox::Ok);
-    msgBox.exec();
-    exit(0);
+    return 0;
   }
 
-  NumberGenerator random{-1.0, 1.0};
+  // Note: custom help dialog is shown instead of the one created by parser due to '/' instead of '-'. Also the
+  // configuration parameter has an optional 'undocumented' value passed by windows screensaver configurator.
+  // We don't have a settings dialog so we'll pass on any value given.
+  auto startOption   = QCommandLineOption{QStringList() << "s" << "S", "Starts the screensaver."};
+  auto previewOption = QCommandLineOption{QStringList() << "p" << "P", "Shows the preview in dialog handle <handle>.", "unusedvalue", "None"};
+  auto configOption  = QCommandLineOption{QStringList() << "c" << "C", "Shows the configuration dialog."};
+  auto helpgOption   = QCommandLineOption{QStringList() << "h" << "H", "Shows the screensaver help."};
 
-  auto rectangle = QApplication::desktop()->geometry();
+  QCommandLineParser parser;
+  parser.setApplicationDescription("WhirlWindWarp Screensaver");
+  parser.addOption(startOption);
+  parser.addOption(configOption);
+  parser.addOption(previewOption);
+  parser.addOption(helpgOption);
+  parser.process(app);
 
-  QGraphicsScene scene;
-  scene.setSceneRect(rectangle);
-  scene.setBackgroundBrush(Qt::black);
+  if (parser.isSet(startOption))
+  {
+    NumberGenerator random{-1.0, 1.0};
 
-  QApplication::setOverrideCursor(Qt::BlankCursor);
+    auto rectangle = QApplication::desktop()->geometry();
 
-  WhirlWindWarp screenSaver(&random, &scene);
-  screenSaver.setRenderHint(QPainter::Antialiasing);
-  screenSaver.showFullScreen();
-  screenSaver.setGeometry(rectangle);
-  screenSaver.move(0,0);
+    QGraphicsScene scene;
+    scene.setSceneRect(rectangle);
+    scene.setBackgroundBrush(Qt::black);
 
-  QTimer timer;
-  QObject::connect(&timer, SIGNAL(timeout()), &screenSaver, SLOT(advance()));
-  timer.start(1000 / EXPECTED_FPS);
+    QApplication::setOverrideCursor(Qt::BlankCursor);
 
-  auto resultValue = app.exec();
+    WhirlWindWarp screenSaver(&random, &scene);
+    screenSaver.setRenderHint(QPainter::Antialiasing);
+    screenSaver.showFullScreen();
+    screenSaver.setGeometry(rectangle);
+    screenSaver.move(0, 0);
 
-  QApplication::restoreOverrideCursor();
+    QTimer timer;
+    QObject::connect(&timer, SIGNAL(timeout()), &screenSaver, SLOT(advance()));
+    timer.start(1000 / EXPECTED_FPS);
 
-  qDebug() << "terminated with value" << resultValue;
+    resultValue = app.exec();
+
+    QApplication::restoreOverrideCursor();
+  }
+  else
+  {
+    if (parser.isSet(configOption))
+    {
+      showConfig();
+    }
+    else
+    {
+      showHelp();
+    }
+  }
 
   return resultValue;
 }
-

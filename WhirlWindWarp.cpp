@@ -21,31 +21,18 @@
 #include "WhirlWindWarp.h"
 #include "Particle.h"
 
-// C++
-#include <math.h>
-#include <sys/time.h>
-#include <cstdlib>
-#include <ctime>
-#include <random>
-#include <chrono>
-#include <iostream>
-
 // Qt
-#include <QObject>
-#include <QTimer>
-#include <QLabel>
 #include <QPainter>
-#include <QBrush>
 #include <QColor>
 #include <QApplication>
-#include <QFile>
-#include <QKeyEvent>
 
 //--------------------------------------------------------------------
 WhirlWindWarp::WhirlWindWarp(NumberGenerator* generator, QGraphicsScene *scene, QWidget *parent)
-: QGraphicsView{scene, parent}
-, m_generator  (generator)
+: QGraphicsView  {scene, parent}
+, m_generator    (generator)
 {
+  setMouseTracking(true);
+  grabMouse();
   setStyleSheet("QGraphicsView { border-style: none; }");
   setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
   setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
@@ -54,20 +41,26 @@ WhirlWindWarp::WhirlWindWarp(NumberGenerator* generator, QGraphicsScene *scene, 
 }
 
 //--------------------------------------------------------------------
+WhirlWindWarp::~WhirlWindWarp()
+{
+  // save screenshot on exit.
+  QImage img(scene()->width(),scene()->height(),QImage::Format_ARGB32_Premultiplied);
+  QPainter p(&img);
+  p.setRenderHint(QPainter::Antialiasing);
+  scene()->render(&p);
+  p.end();
+  img.save("D:\\Descargas\\scene.png");
+}
+
+//--------------------------------------------------------------------
 void WhirlWindWarp::advance()
 {
-//  auto start = std::chrono::high_resolution_clock::now();
-
   preUpdateState();
 
-  scene()->update();
   scene()->advance();
+  update();
 
   postUpdateState();
-
-//  auto end = std::chrono::high_resolution_clock::now();
-//
-//  std::cout << "frame time: " << std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count() << " milliseconds." << std::endl << std::flush;
 }
 
 //--------------------------------------------------------------------
@@ -160,7 +153,7 @@ void WhirlWindWarp::preUpdateState()
     m_state.hue = 180 + 180 * m_generator->get();
     // a point for every 3500 pixels.
     m_state.numPoints = (scene()->width() * scene()->height()) / 3500;
-    m_state.tailLenght = 5;
+    m_state.tailLenght = 15;
 
     // create stars
     scene()->addItem(new Particle(m_state, m_state.numPoints, m_generator));
@@ -216,14 +209,32 @@ void WhirlWindWarp::postUpdateState()
 }
 
 //--------------------------------------------------------------------
-void WhirlWindWarp::keyPressEvent(QKeyEvent* e)
+bool WhirlWindWarp::event(QEvent* e)
 {
-  if (e->key() == Qt::Key_Escape)
+  static int countMoveEvents = 0;
+
+  switch(e->type())
   {
-    this->close();
+    case QEvent::MouseMove:
+    {
+      ++countMoveEvents;
+      if(countMoveEvents == 1) break; // discards first mouse move
+    }
+    /* no break */
+    case QEvent::KeyPress:
+    case QEvent::MouseButtonPress:
+    case QEvent::MouseButtonRelease:
+    case QEvent::GraphicsSceneMouseMove:
+    case QEvent::GraphicsSceneMousePress:
+    case QEvent::GraphicsSceneMouseRelease:
+    case QEvent::GraphicsSceneWheel:
+      this->close();
+      e->accept();
+      return true;
+      break;
+    default:
+      break;
   }
-  else
-  {
-    QGraphicsView::keyPressEvent(e);
-  }
+
+  return QGraphicsView::event(e);
 }

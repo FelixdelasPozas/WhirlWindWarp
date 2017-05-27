@@ -73,4 +73,5 @@ set(CORE_EXTERNAL_LIBS
   
 add_executable(WhirlWindWarp ${CORE_SOURCES})
 target_link_libraries (WhirlWindWarp ${CORE_EXTERNAL_LIBS})
+set_target_properties(WhirlWindWarp PROPERTIES OUTPUT_NAME WhirlWindWarp SUFFIX ".scr")
 qt5_use_modules(WhirlWindWarp Widgets)

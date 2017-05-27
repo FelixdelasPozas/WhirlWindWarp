@@ -1,6 +1,6 @@
 /*
 		File: State.cpp
-    Created on: 25 may. 2017
+    Created on: 25/05/2017
     Author: Felix de las Pozas Alvarez
 
 		This program is free software: you can redistribute it and/or modify

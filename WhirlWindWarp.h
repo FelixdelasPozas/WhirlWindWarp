@@ -23,12 +23,8 @@
 // Project
 #include <State.h>
 
-// C++
-#include <random>
-
 // Qt
 #include <QGraphicsView>
-#include <QTimer>
 
 class QColor;
 class NumberGenerator;
@@ -52,8 +48,7 @@ class WhirlWindWarp
     /** \brief WindWhirlWarp class virtual destructor.
      *
      */
-    virtual ~WhirlWindWarp()
-    {}
+    virtual ~WhirlWindWarp();
 
   public slots:
     /** \brief Updates the state and calls advance() on the scene.
@@ -61,6 +56,9 @@ class WhirlWindWarp
      *
      */
     void advance();
+
+  protected:
+    virtual bool event(QEvent *e);
 
   private:
     /** \brief Initializes the state
@@ -78,8 +76,6 @@ class WhirlWindWarp
      */
     void postUpdateState();
 
-    void keyPressEvent(QKeyEvent *e);
-
     /** \brief Helper method to enable a force field.
      * \param[in] ff force field index.
      */
@@ -94,8 +90,8 @@ class WhirlWindWarp
      */
     float stars_perturb(float var, float op, float damp, float force);
 
-    NumberGenerator *m_generator;  /** random number generator in [-1,1] */
-    struct State     m_state;      /** application state.                */
+    NumberGenerator *m_generator; /** random number generator in [-1,1]. */
+    struct State     m_state;     /** application state.                 */
 };
 
 #endif // WHIRLWINDWARP_H_

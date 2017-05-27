@@ -48,11 +48,23 @@ struct State
     int     hue;                /** hue value.                                         */
 };
 
+/** \class NumberGenerator
+ * \brief Implements a shared random number generator between the given limits.
+ *
+ */
 class NumberGenerator
 {
   public:
+    /** \brief NumberGenerator class constructor.
+     * \param[in] min lower limit.
+     * \param[in] max upper limit.
+     *
+     */
     explicit NumberGenerator(const float min, const float max);
 
+    /** \brief Returns a random number.
+     *
+     */
     const float get();
   private:
     std::default_random_engine             m_generator;    /** random number generator.               */
