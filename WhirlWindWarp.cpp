@@ -44,12 +44,12 @@ WhirlWindWarp::WhirlWindWarp(NumberGenerator* generator, QGraphicsScene *scene, 
 WhirlWindWarp::~WhirlWindWarp()
 {
   // save screenshot on exit.
-  QImage img(scene()->width(),scene()->height(),QImage::Format_ARGB32_Premultiplied);
-  QPainter p(&img);
-  p.setRenderHint(QPainter::Antialiasing);
-  scene()->render(&p);
-  p.end();
-  img.save("D:\\Descargas\\scene.png");
+//  QImage img(scene()->width(),scene()->height(),QImage::Format_ARGB32_Premultiplied);
+//  QPainter p(&img);
+//  p.setRenderHint(QPainter::Antialiasing);
+//  scene()->render(&p);
+//  p.end();
+//  img.save("D:\\Descargas\\scene.png");
 }
 
 //--------------------------------------------------------------------

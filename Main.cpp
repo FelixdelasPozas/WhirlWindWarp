@@ -80,14 +80,16 @@ int main(int argc, char *argv[])
   int resultValue = 0;
 
   // QCommandLineParser uses unix-like '-' for flags, while windows uses '/'. There is no way for QCommandLineParser to adapt to it
-  // so we'll need to change all characters first. Also the 'c' option can have an optional value, and QCommandLineParser also doesn't
-  // support that, so we'll need to truncate the argument.
+  // so we'll need to change all characters first. Also the 'c' option can have an optional value, can be present or not, and
+  // QCommandLineParser also doesn't support that so we'll need to truncate the argument to void that value (parent window handler?).
   for(int i = 1; i < argc; ++i)
   {
     bool dash = false;
     bool clear = false;
     for(char *j = argv[i]; *j; ++j)
     {
+
+
       if(*j == '/')
       {
         *j = '-';
@@ -177,13 +179,20 @@ int main(int argc, char *argv[])
   }
   else
   {
-    if (parser.isSet(configOption))
+    if(parser.isSet(previewOption))
     {
-      showConfig();
+      // do nothing and exit, preview not implemented.
     }
     else
     {
-      showHelp();
+      if (parser.isSet(configOption))
+      {
+        showConfig();
+      }
+      else
+      {
+        showHelp();
+      }
     }
   }
 
