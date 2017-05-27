@@ -19,6 +19,7 @@
 
 // Project
 #include "WhirlWindWarp.h"
+#include "OptionsDialog.h"
 #include "State.h"
 
 // Qt
@@ -33,11 +34,10 @@
 #include <QWindow>
 #include <QHBoxLayout>
 #include <QTimer>
+#include <QSettings>
 
 // C++
 #include <iostream>
-
-const int EXPECTED_FPS = 60;
 
 //-----------------------------------------------------------------
 void myMessageOutput(QtMsgType type, const QMessageLogContext &context, const QString &msg)
@@ -53,12 +53,8 @@ void myMessageOutput(QtMsgType type, const QMessageLogContext &context, const QS
 //-----------------------------------------------------------------
 void showConfig()
 {
-  QMessageBox msgBox;
-  msgBox.setIcon(QMessageBox::Information);
-  msgBox.setWindowFlags(Qt::Dialog | Qt::CustomizeWindowHint | Qt::WindowTitleHint);
-  msgBox.setText("WindWhirlWarp screensaver doesn't have configurable options.");
-  msgBox.setStandardButtons(QMessageBox::Ok);
-  msgBox.exec();
+  OptionsDialog dialog;
+  dialog.exec();
 }
 
 //-----------------------------------------------------------------
@@ -151,6 +147,10 @@ int main(int argc, char *argv[])
 
   if (parser.isSet(startOption))
   {
+    QSettings settings(COMPANY_NAME, APPLICATION_NAME);
+    auto fps       = settings.value(FPS_KEY, 60).toInt();
+    auto antialias = settings.value(ANTIALIAS_KEY, true).toBool();
+
     NumberGenerator random{-1.0, 1.0};
 
     auto rectangle = QApplication::desktop()->geometry();
@@ -162,14 +162,14 @@ int main(int argc, char *argv[])
     QApplication::setOverrideCursor(Qt::BlankCursor);
 
     WhirlWindWarp screenSaver(&random, &scene);
-    screenSaver.setRenderHint(QPainter::Antialiasing);
+    if(antialias) screenSaver.setRenderHint(QPainter::Antialiasing);
     screenSaver.showFullScreen();
     screenSaver.setGeometry(rectangle);
     screenSaver.move(0, 0);
 
     QTimer timer;
     QObject::connect(&timer, SIGNAL(timeout()), &screenSaver, SLOT(advance()));
-    timer.start(1000 / EXPECTED_FPS);
+    timer.start(1000 / fps);
 
     resultValue = app.exec();
 

@@ -66,15 +66,17 @@ class Particle
      */
     void reset(const int point);
 
-    NumberGenerator     *m_generator;  /** random number generator in [-1.1].     */
-    State               &m_state;      /** application state.                     */
-    QList<double>        m_x;          /** x position [-1.0, 1.0].                */
-    QList<double>        m_y;          /** y position [-1.0, 1.0].                */
-    QList<int>           m_width;      /** trail width [1-3].                     */
-    QList<QList<double>> m_tailX;      /** previous x positions.                  */
-    QList<QList<double>> m_tailY;      /** previous y positions.                  */
-    int                  m_tailLength; /** number of previous positions to store. */
-    QList<QColor>        m_color;      /** color.                                 */
+    NumberGenerator     *m_generator;  /** random number generator in [-1.1].         */
+    State               &m_state;      /** application state.                         */
+    QList<double>        m_x;          /** x position [-1.0, 1.0].                    */
+    QList<double>        m_y;          /** y position [-1.0, 1.0].                    */
+    QList<int>           m_width;      /** trail width [1-3].                         */
+    QList<QList<double>> m_tailX;      /** previous x positions.                      */
+    QList<QList<double>> m_tailY;      /** previous y positions.                      */
+    int                  m_tailLength; /** number of previous positions to store.     */
+    QList<QColor>        m_color;      /** color.                                     */
+    bool                 m_drawTails;  /** true to draw point tails, false otherwise. */
+    bool                 m_fadeTails;  /** true to fade the tails, false otherwise.   */
 };
 
 #endif // PARTICLE_H_

@@ -54,6 +54,7 @@ qt5_add_resources(RESOURCES
 
 qt5_wrap_ui(CORE_UI
   # .ui for Qt
+  OptionsDialog.ui
 )
 	
 set (CORE_SOURCES
@@ -65,6 +66,7 @@ set (CORE_SOURCES
   WhirlWindWarp.cpp
   Particle.cpp
   State.cpp
+  OptionsDialog.cpp
 )
 
 set(CORE_EXTERNAL_LIBS

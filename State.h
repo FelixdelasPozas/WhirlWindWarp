@@ -29,6 +29,15 @@
 
 static const int fs = 16;      /** number of forcefields.    */
 
+static const QString ANTIALIAS_KEY   = QString("Antialias");
+static const QString DRAW_TAILS_KEY  = QString("Draw Tails");
+static const QString TAIL_LENGTH_KEY = QString("Tail Length");
+static const QString TAIL_FADE_KEY   = QString("Tail Fade");
+static const QString FPS_KEY         = QString("FPS");
+
+static const QString COMPANY_NAME     = QString("Felix de las Pozas Alvarez");
+static const QString APPLICATION_NAME = QString("WhirlWindWarp");
+
 /** \struct State
  * \brief Implements screensaver state.
  *
