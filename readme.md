@@ -31,11 +31,11 @@ The only current option is build from source as binaries are not provided.
 # Screenshots
 Just a bunch of particles dancing around...
 
-![screensaver]()
+![screenshot](https://cloud.githubusercontent.com/assets/12167134/26524597/c553e1aa-4338-11e7-9cec-c38f1401bf29.png)
 
 Configuration dialog.
 
-![configuration]()
+![optionsdialog](https://cloud.githubusercontent.com/assets/12167134/26524598/c5599e92-4338-11e7-86d0-0fa7b06949a7.png)
 
 # Repository information
 
