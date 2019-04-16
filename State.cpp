@@ -30,7 +30,7 @@ NumberGenerator::NumberGenerator(const float min, const float max)
 : m_distribution{min, max}
 {
   std::srand(std::time(0));
-  m_generator.discard(::rand() % 200);
+  m_generator.discard(std::rand() % 200);
 }
 
 //--------------------------------------------------------------------

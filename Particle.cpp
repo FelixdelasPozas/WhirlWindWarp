@@ -74,12 +74,12 @@ void Particle::advance(int phase)
     {
       // x = mysgn(x) * pow(fabs(x),var[6]);
       // y = mysgn(y) * pow(fabs(y),var[6]);
-      x = -1.0 + 2.0 * ::pow((x + 1.0) / 2.0, m_state.var[6]);
+      x = -1.0 + 2.0 * std::pow((x + 1.0) / 2.0, m_state.var[6]);
     }
 
     if (m_state.enabled[7])
     {
-      y = -1.0 + 2.0 * pow((y + 1.0) / 2.0, m_state.var[7]);
+      y = -1.0 + 2.0 * std::pow((y + 1.0) / 2.0, m_state.var[7]);
     }
 
     /* Warping in/out */
@@ -92,8 +92,8 @@ void Particle::advance(int phase)
     /* Rotation */
     if (m_state.enabled[2])
     {
-      auto nx = x * cos(1.1 * m_state.var[2]) + y * sin(1.1 * m_state.var[2]);
-      auto ny = -x * sin(1.1 * m_state.var[2]) + y * cos(1.1 * m_state.var[2]);
+      const auto nx = x * std::cos(1.1 * m_state.var[2]) + y * std::sin(1.1 * m_state.var[2]);
+      const auto ny = -x * std::sin(1.1 * m_state.var[2]) + y * std::cos(1.1 * m_state.var[2]);
       x = nx;
       y = ny;
     }
@@ -118,7 +118,7 @@ void Particle::advance(int phase)
     }
 
     /* Splitting (whirlwind effect): */
-    auto num_splits = [this] () { return 2 + static_cast<int>(fabs(this->m_state.var[0]) * 1000); };
+    auto num_splits = [this] () { return 2 + static_cast<int>(std::fabs(this->m_state.var[0]) * 1000); };
     auto thru       = [this, i] (int splits) { return static_cast<float>(static_cast<int>(splits * static_cast<float>(i)/static_cast<float>(this->m_state.numPoints)))/static_cast<float>(splits-1); };
 
     if (m_state.enabled[8])
@@ -134,22 +134,22 @@ void Particle::advance(int phase)
     /* Waves */
     if (m_state.enabled[10])
     {
-      y = y + 0.4 * m_state.var[10] * sin(300.0 * m_state.var[12] * x + 600.0 * m_state.var[11]);
+      y = y + 0.4 * m_state.var[10] * std::sin(300.0 * m_state.var[12] * x + 600.0 * m_state.var[11]);
     }
 
     if (m_state.enabled[13])
     {
-      x = x + 0.4 * m_state.var[13] * sin(300.0 * m_state.var[15] * y + 600.0 * m_state.var[14]);
+      x = x + 0.4 * m_state.var[13] * std::sin(300.0 * m_state.var[15] * y + 600.0 * m_state.var[14]);
     }
 
-    if (x <= -0.9999 || x >= +0.9999 || y <= -0.9999 || y >= +0.9999 || fabs(x) < .0001 || fabs(y) < .0001)
+    if(x <= -0.9999 || x >= +0.9999 || y <= -0.9999 || y >= +0.9999 || fabs(x) < .0001 || fabs(y) < .0001)
     {
       // If moved off screen, create a new one.
       reset(i);
     }
     else
     {
-      if(m_generator->get() > 0.99)
+      if(m_generator->get() > 0.995)
       {
         // reset at random.
         reset(i);
@@ -174,7 +174,6 @@ void Particle::advance(int phase)
     }
   }
   setPos(0, 0);
-
 }
 
 //--------------------------------------------------------------------
@@ -192,7 +191,7 @@ void Particle::init(const unsigned int numPoints)
     m_x << m_generator->get();
     m_y << m_generator->get();
 
-    m_width << 1 + (::rand() % 3);
+    m_width << 1 + (std::rand() % 3);
 
     m_tailX << QList<double>();
     m_tailY << QList<double>();
@@ -207,7 +206,7 @@ void Particle::reset(const int point)
   m_x[point] = m_generator->get();
   m_y[point] = m_generator->get();
 
-  m_width[point] = 1 + (::rand() % 3);
+  m_width[point] = 1 + (std::rand() % 3);
 
   m_tailX[point].clear();
   m_tailY[point].clear();
@@ -251,7 +250,7 @@ void Particle::paint(QPainter* painter, const QStyleOptionGraphicsItem* option, 
       {
         if(m_fadeTails)
         {
-          auto factor = pow(0.75, m_tailX[i].size()-j);
+          auto factor = std::pow(0.75, m_tailX[i].size()-j);
           pen.setColor(QColor::fromRgbF(m_color[i].redF() * factor, m_color[i].greenF() * factor, m_color[i].blueF() * factor));
         }
 

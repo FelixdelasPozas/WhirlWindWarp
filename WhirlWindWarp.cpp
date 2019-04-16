@@ -185,12 +185,14 @@ void WhirlWindWarp::postUpdateState()
       turn_on_field(i);
     }
     else
+    {
       if (m_state.enabled[i] && (m_generator->get() > 0.99) && fabs(m_state.var[i] - m_state.optimum[i]) < 0.0005
           && fabs(m_state.velocity[i]) < 0.005 /* && fabs(acc[f])<0.01 */)
       {
         /* We only turn it off if it has gently returned to its optimal (as opposed to rapidly passing through it). */
         m_state.enabled[i] = false;
       }
+    }
 
     if (m_state.enabled[i]) ++numEnabled;
   }
@@ -200,7 +202,7 @@ void WhirlWindWarp::postUpdateState()
   // But then what's wrong with a rare gentle twinkle?!
   while(numEnabled < 3)
   {
-    auto index = ::rand() % fs;
+    auto index = std::rand() % fs;
     if(m_state.enabled[index]) continue;
 
     ++numEnabled;
