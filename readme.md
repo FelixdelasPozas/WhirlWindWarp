@@ -26,7 +26,7 @@ The following libraries are required:
 * [Qt 5 opensource framework](http://www.qt.io/).
 
 # Install
-The only current option is build from source as binaries are not provided. 
+Download the [latest release](https://github.com/FelixdelasPozas/WhirlWindWarp/releases).
 
 # Screenshots
 Just a bunch of particles dancing around...
