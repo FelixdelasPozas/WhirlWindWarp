@@ -1,9 +1,9 @@
+cmake_minimum_required (VERSION 3.5.0)
+
 #
 # WhirlWindWarp CMake configuration.
 #
 project(WhirlWindWarp)
-
-cmake_minimum_required (VERSION 2.8.6)
 
 cmake_policy(SET CMP0020 OLD)
 cmake_policy(SET CMP0043 OLD)
@@ -18,6 +18,7 @@ set(CMAKE_INCLUDE_CURRENT_DIR ON)
 
 # Instruct CMake to run moc automatically when needed.
 set(CMAKE_AUTOMOC ON)
+set(CMAKE_AUTOUIC ON)
 
 # Find the QtWidgets library
 find_package(Qt5 COMPONENTS Widgets)
@@ -50,11 +51,6 @@ include_directories(
 # Add Qt Resource files
 qt5_add_resources(RESOURCES
   rsc/resources.qrc
-)
-
-qt5_wrap_ui(CORE_UI
-  # .ui for Qt
-  OptionsDialog.ui
 )
 	
 set (CORE_SOURCES
