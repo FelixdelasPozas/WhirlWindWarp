@@ -36,7 +36,7 @@ NumberGenerator::NumberGenerator(const float min, const float max)
 //--------------------------------------------------------------------
 const float NumberGenerator::get()
 {
-  QMutexLocker lock(&mutex);
+  std::lock_guard<std::mutex> lock(m_mutex);
 
   return m_distribution(m_generator);
 }

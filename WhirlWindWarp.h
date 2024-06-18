@@ -23,42 +23,30 @@
 // Project
 #include <State.h>
 
-// Qt
-#include <QGraphicsView>
-
-class QColor;
-class NumberGenerator;
-
 /** \class WindWhirlWarp
  * \brief Main widget implementation.
  *
  */
 class WhirlWindWarp
-: public QGraphicsView
 {
-    Q_OBJECT
   public:
     /** \brief WindWhirlWarp class constructor.
      * \param[in] scene graphics scene.
      * \param[in] parent raw pointer of the QWidget parent of this one.
      *
      */
-    explicit WhirlWindWarp(NumberGenerator *generator, QGraphicsScene *scene, QWidget *parent = nullptr);
+    explicit WhirlWindWarp(NumberGenerator *generator);
 
     /** \brief WindWhirlWarp class virtual destructor.
      *
      */
     virtual ~WhirlWindWarp();
 
-  public slots:
     /** \brief Updates the state and calls advance() on the scene.
      *  Returns the number of milliseconds of the operation.
      *
      */
     void advance();
-
-  protected:
-    virtual bool event(QEvent *e);
 
   private:
     /** \brief Initializes the state

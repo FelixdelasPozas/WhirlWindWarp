@@ -21,22 +21,10 @@
 #include "WhirlWindWarp.h"
 #include "Particle.h"
 
-// Qt
-#include <QPainter>
-#include <QColor>
-#include <QApplication>
-
 //--------------------------------------------------------------------
-WhirlWindWarp::WhirlWindWarp(NumberGenerator* generator, QGraphicsScene *scene, QWidget *parent)
-: QGraphicsView  {scene, parent}
-, m_generator    (generator)
+WhirlWindWarp::WhirlWindWarp(NumberGenerator *generator)
+: m_generator(generator)
 {
-  setMouseTracking(true);
-  grabMouse();
-  setStyleSheet("QGraphicsView { border-style: none; }");
-  setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
-  setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
-
   m_state.initted = false;
 }
 
@@ -57,9 +45,9 @@ void WhirlWindWarp::advance()
 {
   preUpdateState();
 
-  scene()->advance();
-  update();
-
+  // TODO: paint?
+  // scene->advance();
+  
   postUpdateState();
 }
 
@@ -152,11 +140,12 @@ void WhirlWindWarp::preUpdateState()
 
     m_state.hue = 180 + 180 * m_generator->get();
     // a point for every 3500 pixels.
-    m_state.numPoints = (scene()->width() * scene()->height()) / 3500;
+    //m_state.numPoints = (scene()->width() * scene()->height()) / 3500;
+    m_state.numPoints = 3000;
     m_state.tailLenght = 15;
 
     // create stars
-    scene()->addItem(new Particle(m_state, m_state.numPoints, m_generator));
+    //scene()->addItem(new Particle(m_state, m_state.numPoints, m_generator));
   }
 }
 
@@ -208,35 +197,4 @@ void WhirlWindWarp::postUpdateState()
     ++numEnabled;
     turn_on_field(index);
   }
-}
-
-//--------------------------------------------------------------------
-bool WhirlWindWarp::event(QEvent* e)
-{
-  static int countMoveEvents = 0;
-
-  switch(e->type())
-  {
-    case QEvent::MouseMove:
-    {
-      ++countMoveEvents;
-      if(countMoveEvents == 1) break; // discards first mouse move
-    }
-    /* no break */
-    case QEvent::KeyPress:
-    case QEvent::MouseButtonPress:
-    case QEvent::MouseButtonRelease:
-    case QEvent::GraphicsSceneMouseMove:
-    case QEvent::GraphicsSceneMousePress:
-    case QEvent::GraphicsSceneMouseRelease:
-    case QEvent::GraphicsSceneWheel:
-      this->close();
-      e->accept();
-      return true;
-      break;
-    default:
-      break;
-  }
-
-  return QGraphicsView::event(e);
 }

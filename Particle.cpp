@@ -24,23 +24,15 @@
 // C++
 #include <cmath>
 
-// Qt
-#include <QSettings>
-#include <QGraphicsScene>
-#include <QPainter>
-
 //--------------------------------------------------------------------
 Particle::Particle(State &state, const unsigned int number, NumberGenerator* generator)
 : m_generator   (generator)
 , m_state       (state)
+, m_drawTails   {true}
+, m_fadeTails   {true}
 , m_tailLength  {state.tailLenght}
 {
   init(number);
-
-  QSettings settings(COMPANY_NAME, APPLICATION_NAME);
-  m_drawTails  = settings.value(DRAW_TAILS_KEY, true).toBool();
-  m_fadeTails  = settings.value(TAIL_FADE_KEY, true).toBool();
-  m_tailLength = settings.value(TAIL_LENGTH_KEY, 15).toInt();
 }
 
 //--------------------------------------------------------------------
@@ -53,11 +45,11 @@ void Particle::advance(int phase)
     // Move a star according to acting forcefields.
     if(m_tailLength != 0)
     {
-      if(m_tailX[i].size() == m_tailLength) m_tailX[i].removeFirst();
-      if(m_tailY[i].size() == m_tailLength) m_tailY[i].removeFirst();
+      if(m_tailX[i].size() == m_tailLength) m_tailX[i].erase(m_tailX[i].begin());
+      if(m_tailY[i].size() == m_tailLength) m_tailY[i].erase(m_tailY[i].begin());
 
-      m_tailX[i] << m_x[i];
-      m_tailY[i] << m_y[i];
+      m_tailX[i].push_back(m_x[i]);
+      m_tailY[i].push_back(m_y[i]);
     }
 
     double x = m_x[i];
@@ -163,9 +155,11 @@ void Particle::advance(int phase)
 
     if (!m_state.changedColor && (m_generator->get() > 0.75))
     {
+      const hsv colorHSV(m_state.hue/360.0, .6 + .4 * m_generator->get(), .6 + .4 * m_generator->get());
+
       // Change one of the allocated colours to something near the current hue.
       // By changing a random colour, we sometimes get a tight colour spread, sometime a diverse one.
-      m_color[i] = QColor::fromHsvF(m_state.hue/360.0, .6 + .4 * m_generator->get(), .6 + .4 * m_generator->get());
+      m_color[i] = hsv2rgb(colorHSV);
       m_state.hue = m_state.hue + 0.5 + m_generator->get() * 9.0;
       if (m_state.hue < 0) m_state.hue += 360;
       if (m_state.hue >= 360) m_state.hue -= 360;
@@ -173,7 +167,6 @@ void Particle::advance(int phase)
       m_state.changedColor = true;
     }
   }
-  setPos(0, 0);
 }
 
 //--------------------------------------------------------------------
@@ -188,15 +181,15 @@ void Particle::init(const unsigned int numPoints)
 
   for(unsigned int i = 0; i < numPoints; ++i)
   {
-    m_x << m_generator->get();
-    m_y << m_generator->get();
+    m_x.push_back(m_generator->get());
+    m_y.push_back(m_generator->get());
 
-    m_width << 1 + (std::rand() % 3);
+    m_width.push_back(1 + (std::rand() % 3));
 
-    m_tailX << QList<double>();
-    m_tailY << QList<double>();
+    m_tailX.push_back(std::vector<double>());
+    m_tailY.push_back(std::vector<double>());
 
-    m_color << QColor::fromHsvF((m_generator->get() + 1.0)/2.0, 0.6 + 0.4 * m_generator->get(), 0.6 + 0.4 * m_generator->get());
+    m_color.push_back(hsv2rgb(hsv((m_generator->get() + 1.0)/2.0, 0.6 + 0.4 * m_generator->get(), 0.6 + 0.4 * m_generator->get())));
   }
 }
 
@@ -211,60 +204,155 @@ void Particle::reset(const int point)
   m_tailX[point].clear();
   m_tailY[point].clear();
 
-  m_color[point] = QColor::fromHsvF((m_generator->get() + 1.0)/2.0, 0.6 + 0.4 * m_generator->get(), 0.6 + 0.4 * m_generator->get());
+  m_color[point] = hsv2rgb(hsv((m_generator->get() + 1.0)/2.0, 0.6 + 0.4 * m_generator->get(), 0.6 + 0.4 * m_generator->get()));
 }
 
 //--------------------------------------------------------------------
-QRectF Particle::boundingRect() const
+void Particle::paint()
 {
-  return scene()->sceneRect();
+  // auto width = scene()->width();
+  // auto height = scene()->height();
+
+  // auto transform = [] (double num) { return (num+1.0)/2.0; };
+
+  // for(int i = 0; i < m_state.numPoints; ++i)
+  // {
+  //   auto color = m_color[i];
+
+  //   QPen pen;
+  //   pen.setWidth(m_width[i]);
+  //   pen.setColor(color);
+
+  //   if(m_drawTails && m_tailX[i].size() > 0)
+  //   {
+  //     for(int j = m_tailX[i].size() - 1; j > 0; --j)
+  //     {
+  //       if(m_fadeTails)
+  //       {
+  //         auto factor = std::pow(0.75, m_tailX[i].size()-j);
+  //         pen.setColor(QColor::fromRgbF(m_color[i].redF() * factor, m_color[i].greenF() * factor, m_color[i].blueF() * factor));
+  //       }
+
+  //       painter->setPen(pen);
+  //       painter->drawLine(transform(m_tailX[i].at(j)) * width, transform(m_tailY[i].at(j)) * height, transform(m_tailX[i].at(j-1)) * width, transform(m_tailY[i].at(j-1)) * height);
+  //     }
+
+  //     pen.setColor(m_color[i]);
+  //     painter->setPen(pen);
+  //     painter->drawLine(transform(m_x[i]) * width, transform(m_y[i]) * height, transform(m_tailX[i].last()) * width, transform(m_tailY[i].last()) * height);
+  //   }
+
+  //   pen.setColor(m_color[i]);
+  //   painter->setPen(pen);
+  //   painter->drawPoint(transform(m_x[i]) * width, transform(m_y[i]) * height);
+  // }
 }
 
 //--------------------------------------------------------------------
-QPainterPath Particle::shape() const
+hsv rgb2hsv(rgb in)
 {
-  QPainterPath path;
-  path.addRect(boundingRect());
-  return path;
-}
+  hsv out;
+  double min, max, delta;
 
-//--------------------------------------------------------------------
-void Particle::paint(QPainter* painter, const QStyleOptionGraphicsItem* option, QWidget* widget)
-{
-  auto width = scene()->width();
-  auto height = scene()->height();
+  min = in.r < in.g ? in.r : in.g;
+  min = min < in.b ? min : in.b;
 
-  auto transform = [] (double num) { return (num+1.0)/2.0; };
+  max = in.r > in.g ? in.r : in.g;
+  max = max > in.b ? max : in.b;
 
-  for(int i = 0; i < m_state.numPoints; ++i)
+  out.v = max; // v
+  delta = max - min;
+  if (delta < 0.00001)
   {
-    auto color = m_color[i];
-
-    QPen pen;
-    pen.setWidth(m_width[i]);
-    pen.setColor(color);
-
-    if(m_drawTails && m_tailX[i].size() > 0)
-    {
-      for(int j = m_tailX[i].size() - 1; j > 0; --j)
-      {
-        if(m_fadeTails)
-        {
-          auto factor = std::pow(0.75, m_tailX[i].size()-j);
-          pen.setColor(QColor::fromRgbF(m_color[i].redF() * factor, m_color[i].greenF() * factor, m_color[i].blueF() * factor));
-        }
-
-        painter->setPen(pen);
-        painter->drawLine(transform(m_tailX[i].at(j)) * width, transform(m_tailY[i].at(j)) * height, transform(m_tailX[i].at(j-1)) * width, transform(m_tailY[i].at(j-1)) * height);
-      }
-
-      pen.setColor(m_color[i]);
-      painter->setPen(pen);
-      painter->drawLine(transform(m_x[i]) * width, transform(m_y[i]) * height, transform(m_tailX[i].last()) * width, transform(m_tailY[i].last()) * height);
-    }
-
-    pen.setColor(m_color[i]);
-    painter->setPen(pen);
-    painter->drawPoint(transform(m_x[i]) * width, transform(m_y[i]) * height);
+    out.s = 0;
+    out.h = 0; // undefined, maybe nan?
+    return out;
   }
+  if (max > 0.0)
+  {                        // NOTE: if Max is == 0, this divide would cause a crash
+    out.s = (delta / max); // s
+  }
+  else
+  {
+    // if max is 0, then r = g = b = 0
+    // s = 0, h is undefined
+    out.s = 0.0;
+    out.h = NAN; // its now undefined
+    return out;
+  }
+  if (in.r >= max)                 // > is bogus, just keeps compilor happy
+    out.h = (in.g - in.b) / delta; // between yellow & magenta
+  else if (in.g >= max)
+    out.h = 2.0 + (in.b - in.r) / delta; // between cyan & yellow
+  else
+    out.h = 4.0 + (in.r - in.g) / delta; // between magenta & cyan
+
+  out.h *= 60.0; // degrees
+
+  if (out.h < 0.0)
+    out.h += 360.0;
+
+  return out;
+}
+
+//--------------------------------------------------------------------
+rgb hsv2rgb(hsv in)
+{
+  double hh, p, q, t, ff;
+  long i;
+  rgb out;
+
+  if (in.s <= 0.0)
+  { // < is bogus, just shuts up warnings
+    out.r = in.v;
+    out.g = in.v;
+    out.b = in.v;
+    return out;
+  }
+  hh = in.h;
+  if (hh >= 360.0)
+    hh = 0.0;
+  hh /= 60.0;
+  i = (long)hh;
+  ff = hh - i;
+  p = in.v * (1.0 - in.s);
+  q = in.v * (1.0 - (in.s * ff));
+  t = in.v * (1.0 - (in.s * (1.0 - ff)));
+
+  switch (i)
+  {
+  case 0:
+    out.r = in.v;
+    out.g = t;
+    out.b = p;
+    break;
+  case 1:
+    out.r = q;
+    out.g = in.v;
+    out.b = p;
+    break;
+  case 2:
+    out.r = p;
+    out.g = in.v;
+    out.b = t;
+    break;
+
+  case 3:
+    out.r = p;
+    out.g = q;
+    out.b = in.v;
+    break;
+  case 4:
+    out.r = t;
+    out.g = p;
+    out.b = in.v;
+    break;
+  case 5:
+  default:
+    out.r = in.v;
+    out.g = p;
+    out.b = q;
+    break;
+  }
+  return out;
 }
