@@ -1,7 +1,0 @@
-<RCC>
-  <qresource prefix="/WhirlWindWarp">
-    <file>app.ico</file>
-	<file>app.svg</file>
-	<file>Qt.ico</file>
-  </qresource>
-</RCC>
