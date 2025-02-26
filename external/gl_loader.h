@@ -91,10 +91,13 @@ int load_gl_functions();
 #define glGetAttribLocation ((PFNGLGETATTRIBLOCATIONPROC)gl_function_pointers[56])
 #define glBufferSubData ((PFNGLBUFFERSUBDATAPROC)gl_function_pointers[57])
 #define glUniform4iv ((PFNGLUNIFORM4IVPROC)gl_function_pointers[58])
+#define glBindAttribLocation ((PFNGLBINDATTRIBLOCATIONPROC)gl_function_pointers[59])
+#define glGetProgramInfoLog ((PFNGLGETPROGRAMINFOLOGPROC)gl_function_pointers[60])
 
 // GL debug function definitions.
 #ifdef DEBUG
 extern void* gl_debug_function_pointers[]; 
+
 #define glGetTextureParameteriv ((PFNGLGETTEXTUREPARAMETERIVPROC)gl_debug_function_pointers[0]) 
 #define glDetachShader ((PFNGLDETACHSHADERPROC)gl_debug_function_pointers[1]) 
 #define glGenQueries ((PFNGLGENQUERIESPROC)gl_debug_function_pointers[2]) 

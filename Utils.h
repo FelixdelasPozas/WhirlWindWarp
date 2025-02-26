@@ -22,13 +22,33 @@
 
 // C++
 #include <iostream>
+#include <GL/gl.h>
+#include <list>
 
 class GLFWwindow;
 
 namespace Utils
 {
-  /** @struct Configuration
-   * @brief Configuration data struct.
+  /** \struct GL_program
+   * \brief Contains a gl program. 
+   *
+   */
+  struct GL_program
+  {
+    std::string name;
+    unsigned int vert;
+    unsigned int frag;
+    unsigned int program;
+
+    /** \brief GL_program struct constructor.
+     * \param[in] n Program name.
+     */
+    GL_program(const std::string &n)
+    : name{n}, vert{static_cast<unsigned int>(-1)}, frag{static_cast<unsigned int>(-1)}, program{static_cast<unsigned int>(-1)} {};
+  };
+
+  /** \struct Configuration
+   * \brief Configuration data struct.
    */
   struct Configuration
   {
@@ -37,29 +57,28 @@ namespace Utils
     bool antialias;   /** true if antialias enabled and false otherwise. */
     bool show_trails; /** true to show the particle trails and false otherwise. */
 
-    /**
-     * @brief Configuration constructor. 
+    /** \brief Configuration constructor. 
+     *
      */
     Configuration(): line_width{1}, point_size{2}, antialias{true}, show_trails{true} {};
   };
 
-  /**
-   * @brief Dump Configuration information, for debugging purposes.
-   * @param os Stream
-   * @param config Configuration struct reference.
-   * @return The stream.
+  /** \brief Dump Configuration information, for debugging purposes.
+   * \param[inout] os Stream
+   * \param[in] config Configuration struct reference.
+   *
    */
   std::ostream& operator<<(std::ostream& os, const struct Configuration &config);
 
-  /**
-   * @brief Loads the application configuration from the windows registry. 
-   * @param[out] config Configuration struct reference. 
+  /** \brief Loads the application configuration from the windows registry. 
+   * \param[out] config Configuration struct reference. 
+   *
    */
   void loadConfiguration(Configuration &config);
   
-  /**
-   * @brief Saves the application configuration to the windows registry. 
-   * @param[out] config Configuration struct reference. 
+  /** \brief Saves the application configuration to the windows registry. 
+   * \param[in] config Configuration struct reference. 
+   *
    */
   void saveConfiguration(const Configuration &config);
 
@@ -93,6 +112,21 @@ namespace Utils
    *
    */
   void glfwMouseButtonCallback(GLFWwindow *window, int /* button */, int /* action */, int /* mods */);
+
+  /** \brief Helper method to load the shader and check for errors.
+   * \param[in] source Shader source code.
+   * \param[in] type Shader type: vertex, fragment.
+   *
+   */
+  GLint loadShader(const char *source, GLenum type);
+
+  // List of attribute bind positions and names.
+  using attribList = std::list<std::pair<GLuint,const std::string>>;
+
+  /** \brief Helper method to compile the program and check for errors.
+   * \param[inout] program GL program struct reference.
+   */
+  void initProgram(GL_program &program, attribList attribs = attribList());
 }
 
 #endif // _UTILS_H_

@@ -104,7 +104,9 @@ const char *gl_function_names[] = {
 	"glUniform1i",
 	"glGetAttribLocation",
 	"glBufferSubData",
-	"glUniform4iv"
+	"glUniform4iv",
+	"glBindAttribLocation",
+	"glGetProgramInfoLog"
 };
 
 /** \brief Array of GL function pointers.

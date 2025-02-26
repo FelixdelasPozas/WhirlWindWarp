@@ -21,6 +21,7 @@
 #include <Utils.h>
 
 // GLFW
+#include <external/gl_loader.h>
 #include <GLFW/glfw3.h>
 
 // C++
@@ -29,6 +30,8 @@
 #include <iostream>
 #include <string>
 #include <winuser.h>
+#include <cassert>
+
 
 LPCSTR KEY_BASEKEY   = "Software\\Felix de las Pozas Alvarez\\WhirlWindWarp";
 LPCSTR KEY_LINEWIDTH = "LineWidth";
@@ -136,6 +139,64 @@ void Utils::glfwMousePosCallback(GLFWwindow *window, double xpos, double ypos)
 void Utils::glfwMouseButtonCallback(GLFWwindow *window, int, int, int)
 {
   glfwSetWindowShouldClose(window, GLFW_TRUE);
+}
+
+//----------------------------------------------------------------------------
+GLint Utils::loadShader(const char *source, GLenum type)
+{
+	GLuint shader;
+	shader = glCreateShader(type);
+	glShaderSource(shader, 1, (const GLchar **)&source, nullptr);
+	glCompileShader(shader);
+
+	GLint compiled;
+	glGetShaderiv(shader, GL_COMPILE_STATUS, &compiled);
+	if (!compiled)
+	{
+		GLint logLen = -1;
+		glGetShaderiv(shader, GL_INFO_LOG_LENGTH, &logLen);
+
+		char *logString = new char[logLen];
+		glGetShaderInfoLog(shader, logLen, nullptr, logString);
+		const std::string errorString = (logLen > 0 ? logString : "empty");
+		delete[] logString;
+
+		glDeleteShader(shader);
+		errorCallback(EXIT_FAILURE, logString);
+	}
+
+	return shader;
+}
+
+//----------------------------------------------------------------------------
+void Utils::initProgram(GL_program &program, attribList attribs)
+{
+  assert(program.vert != static_cast<unsigned int>(-1) && program.frag != static_cast<unsigned int>(-1));
+	program.program = glCreateProgram();
+
+	glAttachShader(program.program, program.vert);
+	glAttachShader(program.program, program.frag);
+
+  for(auto &[pos, attribName]: attribs)
+    glBindAttribLocation(program.program, pos, attribName.c_str());
+
+	glLinkProgram(program.program);
+
+	int linked;
+	glGetProgramiv(program.program, GL_LINK_STATUS, &linked);
+	if (!linked)
+	{
+		GLint logLen;
+		glGetProgramiv(program.program, GL_INFO_LOG_LENGTH, &logLen);
+
+		char* logString = new char[logLen];
+		glGetProgramInfoLog(program.program, logLen, NULL, logString);
+    const std::string errorString = (logLen > 0 ? logString : "empty");
+		delete[] logString;
+
+		glDeleteProgram(program.program);
+		errorCallback(EXIT_FAILURE, errorString.c_str());
+	}  
 }
 
 //----------------------------------------------------------------------------
