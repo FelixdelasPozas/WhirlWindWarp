@@ -24,11 +24,80 @@
 #include <iostream>
 #include <GL/gl.h>
 #include <list>
+#include <cmath>
+#include <random>
+#include <mutex>
 
 class GLFWwindow;
 
 namespace Utils
 {
+  /** \class NumberGenerator
+   * \brief Implements a shared random number generator between the given limits.
+   *
+   */
+  class NumberGenerator
+  {
+  public:
+    /** \brief NumberGenerator class constructor.
+     * \param[in] min lower limit.
+     * \param[in] max upper limit.
+     *
+     */
+    explicit NumberGenerator(const float min, const float max);
+
+    /** \brief Returns a random number.
+     *
+     */
+    const float get();
+
+  private:
+    std::default_random_engine m_generator;                /** random number generator.               */
+    std::uniform_real_distribution<double> m_distribution; /** uniform real distribution in [min,max] */
+    std::mutex m_mutex;                                    /** mutex                                  */
+  };
+
+  /** \struct rgb
+   * \brief Contains the red/green/blue color values.
+   */
+  struct rgb
+  {
+    float r; // a fraction between 0 and 1
+    float g; // a fraction between 0 and 1
+    float b; // a fraction between 0 and 1
+
+    rgb() : r{0}, g{0}, b{0} {};
+    rgb(const float r_, const float g_, const float b_) : r{r_}, g{g_}, b{b_} {};
+
+    inline rgb operator*(const float factor)
+    {
+      return rgb(r * factor, g * factor, b * factor);
+    }
+  };
+
+  /** \struct hsv
+   * \brief Contains the hue/saturation/value color values.
+   */
+  struct hsv
+  {
+    float h; // angle in degrees
+    float s; // a fraction between 0 and 1
+    float v; // a fraction between 0 and 1
+
+    hsv() : h{0}, s{0}, v{0} {};
+    hsv(const float h_, const float s_, const float v_) : h{h_}, s{s_}, v{v_} {};
+  };
+
+  /** \brief Converts rgb to hsv
+   *
+   */
+  hsv rgb2hsv(rgb in);
+
+  /** \brief Converts hsv to rgb
+   *
+   */
+  rgb hsv2rgb(hsv in);
+
   /** \struct GL_program
    * \brief Contains a gl program. 
    *
@@ -37,6 +106,7 @@ namespace Utils
   {
     std::string name;
     unsigned int vert;
+    unsigned int geom;
     unsigned int frag;
     unsigned int program;
 
@@ -44,7 +114,12 @@ namespace Utils
      * \param[in] n Program name.
      */
     GL_program(const std::string &n)
-    : name{n}, vert{static_cast<unsigned int>(-1)}, frag{static_cast<unsigned int>(-1)}, program{static_cast<unsigned int>(-1)} {};
+    : name{n}
+    , vert{static_cast<unsigned int>(-1)}
+    , geom{static_cast<unsigned int>(-1)}
+    , frag{static_cast<unsigned int>(-1)}
+    , program{static_cast<unsigned int>(-1)}
+    {};
   };
 
   /** \struct Configuration

@@ -18,14 +18,16 @@
  */
 
 // Project
-#include "Particle.h"
-#include "State.h"
+#include <Particle.h>
+#include <WhirlWindWarp.h>
 
 // C++
 #include <cmath>
+#include <algorithm>
+#include <execution>
 
 //--------------------------------------------------------------------
-Particle::Particle(State &state, const unsigned int number, NumberGenerator* generator)
+Particle::Particle(State &state, const unsigned int number, Utils::NumberGenerator* generator)
 : m_generator   (generator)
 , m_state       (state)
 , m_drawTails   {true}
@@ -36,10 +38,8 @@ Particle::Particle(State &state, const unsigned int number, NumberGenerator* gen
 }
 
 //--------------------------------------------------------------------
-void Particle::advance(int phase)
+void Particle::advance()
 {
-  if(phase == 0) return;
-
   for(int i = 0; i < m_state.numPoints; ++i)
   {
     // Move a star according to acting forcefields.
@@ -134,16 +134,15 @@ void Particle::advance(int phase)
       x = x + 0.4 * m_state.var[13] * std::sin(300.0 * m_state.var[15] * y + 600.0 * m_state.var[14]);
     }
 
-    if(x <= -0.9999 || x >= +0.9999 || y <= -0.9999 || y >= +0.9999 || fabs(x) < .0001 || fabs(y) < .0001)
+    if(x <= -1.f || x >= 1.f || y <= -1.f || y >= 1.f || fabs(x) < .0001 || fabs(y) < .0001)
     {
-      // If moved off screen, create a new one.
+      // If moved off screen or too centered to move, create a new one.
       reset(i);
     }
     else
     {
       if(m_generator->get() > 0.995)
       {
-        // reset at random.
         reset(i);
       }
       else
@@ -155,11 +154,11 @@ void Particle::advance(int phase)
 
     if (!m_state.changedColor && (m_generator->get() > 0.75))
     {
-      const hsv colorHSV(m_state.hue/360.0, .6 + .4 * m_generator->get(), .6 + .4 * m_generator->get());
+      const Utils::hsv colorHSV(m_state.hue/360.0, .6 + .4 * m_generator->get(), .6 + .4 * m_generator->get());
 
       // Change one of the allocated colours to something near the current hue.
       // By changing a random colour, we sometimes get a tight colour spread, sometime a diverse one.
-      m_color[i] = hsv2rgb(colorHSV);
+      m_color[i] = Utils::hsv2rgb(colorHSV);
       m_state.hue = m_state.hue + 0.5 + m_generator->get() * 9.0;
       if (m_state.hue < 0) m_state.hue += 360;
       if (m_state.hue >= 360) m_state.hue -= 360;
@@ -172,25 +171,29 @@ void Particle::advance(int phase)
 //--------------------------------------------------------------------
 void Particle::init(const unsigned int numPoints)
 {
-  m_x.reserve(numPoints);
-  m_y.reserve(numPoints);
-  m_width.reserve(numPoints);
-  m_tailX.reserve(numPoints);
-  m_tailY.reserve(numPoints);
-  m_color.reserve(numPoints);
+  m_x.resize(numPoints, 0.f);
+  m_y.resize(numPoints, 0.f);
+  m_width.resize(numPoints, 1);
+  m_tailX.resize(numPoints);
+  m_tailY.resize(numPoints);
+  m_color.resize(numPoints);
 
-  for(unsigned int i = 0; i < numPoints; ++i)
+  std::vector<size_t> index[numPoints];
+  std::iota(index->begin(), index->end(), 0);
+
+  auto initPoint = [&](const size_t idx)
   {
-    m_x.push_back(m_generator->get());
-    m_y.push_back(m_generator->get());
+    m_x[idx] = m_generator->get();
+    m_y[idx] = m_generator->get();
 
-    m_width.push_back(1 + (std::rand() % 3));
+    m_width[idx] = 1 + (std::rand() % 3);
 
-    m_tailX.push_back(std::vector<double>());
-    m_tailY.push_back(std::vector<double>());
+    m_tailX[idx] = std::vector<double>();
+    m_tailY[idx] = std::vector<double>();
 
-    m_color.push_back(hsv2rgb(hsv((m_generator->get() + 1.0)/2.0, 0.6 + 0.4 * m_generator->get(), 0.6 + 0.4 * m_generator->get())));
-  }
+    m_color[idx] = Utils::hsv2rgb(Utils::hsv((m_generator->get() + 1.0)/2.0, 0.6 + 0.4 * m_generator->get(), 0.6 + 0.4 * m_generator->get()));
+  };
+  std::for_each(std::execution::par_unseq, index->cbegin(), index->cend(), initPoint);
 }
 
 //--------------------------------------------------------------------
@@ -204,36 +207,27 @@ void Particle::reset(const int point)
   m_tailX[point].clear();
   m_tailY[point].clear();
 
-  m_color[point] = hsv2rgb(hsv((m_generator->get() + 1.0)/2.0, 0.6 + 0.4 * m_generator->get(), 0.6 + 0.4 * m_generator->get()));
+  m_color[point] = Utils::hsv2rgb(Utils::hsv((m_generator->get() + 1.0)/2.0, 0.6 + 0.4 * m_generator->get(), 0.6 + 0.4 * m_generator->get()));
 }
 
 //--------------------------------------------------------------------
-void Particle::paint()
-{
-  // auto width = scene()->width();
-  // auto height = scene()->height();
-
-  // auto transform = [] (double num) { return (num+1.0)/2.0; };
-
+// void Particle::paint()
+// {
   // for(int i = 0; i < m_state.numPoints; ++i)
   // {
   //   auto color = m_color[i];
-
-  //   QPen pen;
-  //   pen.setWidth(m_width[i]);
-  //   pen.setColor(color);
 
   //   if(m_drawTails && m_tailX[i].size() > 0)
   //   {
   //     for(int j = m_tailX[i].size() - 1; j > 0; --j)
   //     {
+  //       rgb fadeColor = color;;
   //       if(m_fadeTails)
   //       {
-  //         auto factor = std::pow(0.75, m_tailX[i].size()-j);
-  //         pen.setColor(QColor::fromRgbF(m_color[i].redF() * factor, m_color[i].greenF() * factor, m_color[i].blueF() * factor));
+  //         const auto factor = std::pow(0.75, m_tailX[i].size()-j);
+  //         fadeColor = fadeColor * factor;
   //       }
 
-  //       painter->setPen(pen);
   //       painter->drawLine(transform(m_tailX[i].at(j)) * width, transform(m_tailY[i].at(j)) * height, transform(m_tailX[i].at(j-1)) * width, transform(m_tailY[i].at(j-1)) * height);
   //     }
 
@@ -246,113 +240,5 @@ void Particle::paint()
   //   painter->setPen(pen);
   //   painter->drawPoint(transform(m_x[i]) * width, transform(m_y[i]) * height);
   // }
-}
+// }
 
-//--------------------------------------------------------------------
-hsv rgb2hsv(rgb in)
-{
-  hsv out;
-  double min, max, delta;
-
-  min = in.r < in.g ? in.r : in.g;
-  min = min < in.b ? min : in.b;
-
-  max = in.r > in.g ? in.r : in.g;
-  max = max > in.b ? max : in.b;
-
-  out.v = max; // v
-  delta = max - min;
-  if (delta < 0.00001)
-  {
-    out.s = 0;
-    out.h = 0; // undefined, maybe nan?
-    return out;
-  }
-  if (max > 0.0)
-  {                        // NOTE: if Max is == 0, this divide would cause a crash
-    out.s = (delta / max); // s
-  }
-  else
-  {
-    // if max is 0, then r = g = b = 0
-    // s = 0, h is undefined
-    out.s = 0.0;
-    out.h = NAN; // its now undefined
-    return out;
-  }
-  if (in.r >= max)                 // > is bogus, just keeps compilor happy
-    out.h = (in.g - in.b) / delta; // between yellow & magenta
-  else if (in.g >= max)
-    out.h = 2.0 + (in.b - in.r) / delta; // between cyan & yellow
-  else
-    out.h = 4.0 + (in.r - in.g) / delta; // between magenta & cyan
-
-  out.h *= 60.0; // degrees
-
-  if (out.h < 0.0)
-    out.h += 360.0;
-
-  return out;
-}
-
-//--------------------------------------------------------------------
-rgb hsv2rgb(hsv in)
-{
-  double hh, p, q, t, ff;
-  long i;
-  rgb out;
-
-  if (in.s <= 0.0)
-  { // < is bogus, just shuts up warnings
-    out.r = in.v;
-    out.g = in.v;
-    out.b = in.v;
-    return out;
-  }
-  hh = in.h;
-  if (hh >= 360.0)
-    hh = 0.0;
-  hh /= 60.0;
-  i = (long)hh;
-  ff = hh - i;
-  p = in.v * (1.0 - in.s);
-  q = in.v * (1.0 - (in.s * ff));
-  t = in.v * (1.0 - (in.s * (1.0 - ff)));
-
-  switch (i)
-  {
-  case 0:
-    out.r = in.v;
-    out.g = t;
-    out.b = p;
-    break;
-  case 1:
-    out.r = q;
-    out.g = in.v;
-    out.b = p;
-    break;
-  case 2:
-    out.r = p;
-    out.g = in.v;
-    out.b = t;
-    break;
-
-  case 3:
-    out.r = p;
-    out.g = q;
-    out.b = in.v;
-    break;
-  case 4:
-    out.r = t;
-    out.g = p;
-    out.b = in.v;
-    break;
-  case 5:
-  default:
-    out.r = in.v;
-    out.g = p;
-    out.b = q;
-    break;
-  }
-  return out;
-}

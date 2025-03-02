@@ -93,6 +93,8 @@ int load_gl_functions();
 #define glUniform4iv ((PFNGLUNIFORM4IVPROC)gl_function_pointers[58])
 #define glBindAttribLocation ((PFNGLBINDATTRIBLOCATIONPROC)gl_function_pointers[59])
 #define glGetProgramInfoLog ((PFNGLGETPROGRAMINFOLOGPROC)gl_function_pointers[60])
+#define glBlendEquation ((PFNGLBLENDEQUATIONPROC)gl_function_pointers[61])
+#define glBlendFuncSeparate ((PFNGLBLENDFUNCSEPARATEPROC)gl_function_pointers[62])
 
 // GL debug function definitions.
 #ifdef DEBUG

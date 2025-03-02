@@ -18,26 +18,17 @@
  */
 
 // Project
-#include "WhirlWindWarp.h"
-#include "Particle.h"
+#include <WhirlWindWarp.h>
+#include <Particle.h>
+#include <Utils.h>
 
 //--------------------------------------------------------------------
-WhirlWindWarp::WhirlWindWarp(NumberGenerator *generator)
-: m_generator(generator)
+WhirlWindWarp::WhirlWindWarp(Utils::NumberGenerator *generator, const int numPoints)
+: m_generator{generator}
+, m_numPoints{numPoints}
+, m_particles{nullptr}
 {
   m_state.initted = false;
-}
-
-//--------------------------------------------------------------------
-WhirlWindWarp::~WhirlWindWarp()
-{
-  // save screenshot on exit.
-//  QImage img(scene()->width(),scene()->height(),QImage::Format_ARGB32_Premultiplied);
-//  QPainter p(&img);
-//  p.setRenderHint(QPainter::Antialiasing);
-//  scene()->render(&p);
-//  p.end();
-//  img.save("D:\\Descargas\\scene.png");
 }
 
 //--------------------------------------------------------------------
@@ -45,8 +36,7 @@ void WhirlWindWarp::advance()
 {
   preUpdateState();
 
-  // TODO: paint?
-  // scene->advance();
+  m_particles->advance();
   
   postUpdateState();
 }
@@ -140,12 +130,11 @@ void WhirlWindWarp::preUpdateState()
 
     m_state.hue = 180 + 180 * m_generator->get();
     // a point for every 3500 pixels.
-    //m_state.numPoints = (scene()->width() * scene()->height()) / 3500;
-    m_state.numPoints = 3000;
+    m_state.numPoints = m_numPoints;
     m_state.tailLenght = 15;
 
-    // create stars
-    //scene()->addItem(new Particle(m_state, m_state.numPoints, m_generator));
+    if(!m_particles)
+      m_particles = std::make_unique<Particle>(m_state, m_state.numPoints, m_generator);
   }
 }
 

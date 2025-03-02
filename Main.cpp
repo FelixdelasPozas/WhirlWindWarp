@@ -19,7 +19,6 @@
 
 // Project
 #include <WhirlWindWarp.h>
-#include <State.h>
 #include <version.h>
 #include <Utils.h>
 #include <Shaders.h>
@@ -35,7 +34,7 @@
 #include <iostream>
 
 //----------------------------------------------------------------------------
-int main() 
+int main(int argc, char *argv[]) 
 {
   Utils::Configuration config;
   Utils::loadConfiguration(config);
@@ -61,6 +60,8 @@ int main()
     std::cout << "res " << res->width << "x" << res->height << std::endl;
   }
 
+  glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
+  glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 0);
   // Create a windowed mode window and its OpenGL context
   glfwWindowHint(GLFW_SAMPLES, config.antialias ? 4 : 1);
   GLFWwindow *window = glfwCreateWindow(800, 600, "Colored Lines", nullptr, nullptr);
@@ -81,16 +82,29 @@ int main()
 
   // Compile shaders
   Utils::GL_program program("default");
-  program.vert = Utils::loadShader(vertexShaderSource, GL_VERTEX_SHADER);
-  program.frag = Utils::loadShader(fragmentShaderSource, GL_FRAGMENT_SHADER);
+  if(config.show_trails)
+  {
+    program.vert = Utils::loadShader(trailsVertexShaderSource, GL_VERTEX_SHADER);
+    program.geom = Utils::loadShader(trailsGeometryShaderSource, GL_GEOMETRY_SHADER);
+    program.frag = Utils::loadShader(trailsFragmentShaderSource, GL_FRAGMENT_SHADER);
+  }
+  else
+  {
+    program.vert = Utils::loadShader(pointsVertexShaderSource, GL_VERTEX_SHADER);
+    program.frag = Utils::loadShader(pointsFragmentShaderSource, GL_FRAGMENT_SHADER);
+  }
 
   // Create shader program
   Utils::initProgram(program);
 
   // Define line data with separate colors for each endpoint
-  float vertices[] = {
-      -1.f, -1.f, 0.0f, 1.0f, 0.0f, 0.0f, 1.0f, 0.5f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 1.0f,
-      0.0f, -0.5f, 0.0f, 0.0f, 0.0f, 1.0f, 1.0f, 0.0f, 0.5f, 0.0f, 1.0f, 1.0f, 1.0f, 1.0f};
+    float vertices[] = {
+        // positions      // colors                  // line width
+        0.5f,  0.5f,      1.0f, 0.0f, 0.0f, 0.5f,    0.01f,  // Top Right Red
+       -0.5f,  -0.5f,     0.0f, 1.0f, 0.0f, 1.0f,    0.02f,  // Top Left Green
+       -1.0f, -0.8f,      0.0f, 0.0f, 1.0f, 0.5f,    0.04f,  // Bottom Right Blue
+        1.0f, 0.8f,       0.0f, 1.0f, 0.0f, 1.0f,    0.01f   // Bottom Left Yellow
+    };
 
   // Create VAO and VBO
   GLuint VAO, VBO;
@@ -101,35 +115,74 @@ int main()
   glBindBuffer(GL_ARRAY_BUFFER, VBO);
   glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_DYNAMIC_DRAW);
 
+  const GLsizei stride = 7 * sizeof(float);
   // Position and color attributes for endpoint 1
-  glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 7 * sizeof(float), (void *)0);
+  glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, stride, (void *)0);
   glEnableVertexAttribArray(0);
-  glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, 7 * sizeof(float), (void *)(3 * sizeof(float)));
+
+  // Color attribute
+  glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, stride, (void *)(2 * sizeof(float)));
   glEnableVertexAttribArray(1);
 
-  // Position and color attributes for endpoint 2
-  glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, 7 * sizeof(float), (void *)(6 * sizeof(float)));
+  // Line/Point width
+  glVertexAttribPointer(2, 1, GL_FLOAT, GL_FALSE, stride, (void *)(6 * sizeof(float)));
   glEnableVertexAttribArray(2);
-  glVertexAttribPointer(3, 4, GL_FLOAT, GL_FALSE, 7 * sizeof(float), (void *)(9 * sizeof(float)));
-  glEnableVertexAttribArray(3);
+
+  // FPS ------------------------------
+  static float fpsTime = 0;
+  static unsigned long fps = 0;
+  // FPS ------------------------------
 
   // Render loop
   while (!glfwWindowShouldClose(window))
   {
+    glClearColor(0,0,0,1);
     glClear(GL_COLOR_BUFFER_BIT);
-    if(config.antialias) glEnable(GL_MULTISAMPLE);  
-    glLineWidth(config.line_width);
+    glDepthMask(GL_FALSE);
+
+    if(config.antialias)
+      glEnable(GL_MULTISAMPLE);  
+
+    glEnable(GL_BLEND);
+    glBlendEquation(GL_MAX);
+
+    if(config.show_trails)
+    {
+      glEnable(GL_BLEND);
+      glBlendEquation(GL_MAX);
+    }
+    else
+      glEnable(GL_PROGRAM_POINT_SIZE);
 
     glUseProgram(program.program);
 
-    // vertices[0] = vertices[1] = -1 + std::fabs(std::sin(glfwGetTime()));
-    // vertices[7] = 1 - std::fabs(std::sin(glfwGetTime()));
     glBindVertexArray(VAO);
     glBindBuffer(GL_ARRAY_BUFFER, VBO);
     glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_DYNAMIC_DRAW );
-    glDrawArrays(GL_LINES, 0, 2); // Draw two lines
+
+    if(config.show_trails)
+      glDrawArrays(GL_LINES, 0, 4); // Draw two lines
+    else
+      glDrawArrays(GL_POINTS, 0, 4);
+
+    vertices[0] = -0.5 + std::fabs(std::sin(glfwGetTime()));
+    vertices[7] = 0.5 - std::fabs(std::sin(glfwGetTime()));
+    vertices[14] = -1 + std::fabs(std::sin(glfwGetTime()));
+    vertices[21] = 1 - std::fabs(std::sin(glfwGetTime()));
 
     glfwSwapBuffers(window);
+
+    // FPS ------------------------------
+    ++fps;
+    const auto cTime = glfwGetTime();
+    if(cTime - fpsTime > 1.f) 
+    {
+      std::cout << "fps " << fps << std::endl;
+      fps = 0;
+      fpsTime = cTime;
+    }
+    // FPS ------------------------------
+
     glfwPollEvents();
     glBindVertexArray(0);
   }

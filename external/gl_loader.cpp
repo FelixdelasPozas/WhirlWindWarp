@@ -106,7 +106,9 @@ const char *gl_function_names[] = {
 	"glBufferSubData",
 	"glUniform4iv",
 	"glBindAttribLocation",
-	"glGetProgramInfoLog"
+	"glGetProgramInfoLog",
+	"glBlendEquation",
+	"glBlendFuncSeparate"
 };
 
 /** \brief Array of GL function pointers.

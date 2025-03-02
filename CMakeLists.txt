@@ -11,8 +11,10 @@ set (WHIRLWINDWARP_VERSION_PATCH 0)
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -static -Wall -Wno-deprecated -std=c++17 -mconsole -m64")
 #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -static -Wall -Wno-deprecated -std=c++17 -mwindows -m64")
+set(CMAKE_INCLUDE_SYSTEM_FLAG_CXX "-I system") # fixes #include_next errors.
 
 find_package(glfw3 REQUIRED)
+find_package(TBB REQUIRED)
 
 if(DEFINED MINGW)
   configure_file("${PROJECT_SOURCE_DIR}/resources.rc.in" "${PROJECT_BINARY_DIR}/resources.rc")
@@ -37,7 +39,6 @@ set (CORE_SOURCES
   ${CORE_UI}
   Main.cpp
   Particle.cpp
-  State.cpp
   Utils.cpp
   WhirlWindWarp.cpp
   external/gl_loader.cpp
@@ -46,6 +47,7 @@ set (CORE_SOURCES
 set(CORE_EXTERNAL_LIBS
   glfw3
   opengl32
+  TBB::tbb
 )
   
 add_executable(WhirlWindWarp ${CORE_SOURCES})

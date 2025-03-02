@@ -20,28 +20,99 @@
 #ifndef _SHADERS_H_
 #define _SHADERS_H_
 
-const char* vertexShaderSource = R"(
+const char* trailsVertexShaderSource = R"(
 #version 330 core
-layout(location = 0) in vec3 aPos1;
-layout(location = 1) in vec4 aColor1;
+layout(location = 0) in vec2 inPos;
+layout(location = 1) in vec4 inColor;
+layout(location = 2) in float inWidth;
 
-out vec4 ourColor;
+out vec4 vColor;
+out float lineWidth;
 
 void main()
 {
-    gl_Position = vec4(aPos1, 1.0);
-    ourColor = aColor1;
+    gl_Position = vec4(inPos, 0.0, 1.0);
+    vColor = inColor;
+    lineWidth = inWidth;
 }
 )";
 
-const char* fragmentShaderSource = R"(
-#version 330 core
-in vec4 ourColor;
-out vec4 FragColor;
+const char* trailsGeometryShaderSource = R"(
+#version 330
+
+layout (lines) in;
+layout (triangle_strip, max_vertices = 4) out;
+
+in vec4 vColor[];
+in float lineWidth[];
+
+out vec4 gColor;
 
 void main()
 {
-    FragColor = ourColor;
+    float r1 = lineWidth[0] / 2;
+    float r2 = lineWidth[1] / 2;
+
+    vec4 p1 = gl_in[0].gl_Position;
+    vec4 p2 = gl_in[1].gl_Position;
+
+    vec2 dir = normalize(p2.xy - p1.xy);
+    vec2 normal = vec2(dir.y, -dir.x);
+
+    vec4 offset1, offset2;
+    offset1 = vec4(normal * r1, 0, 0);
+    offset2 = vec4(normal * r2, 0, 0);
+
+    vec4 coords[4];
+    coords[0] = p1 + offset1;
+    coords[1] = p1 - offset1;
+    coords[2] = p2 + offset2;
+    coords[3] = p2 - offset2;
+
+    for (int i = 0; i < 4; ++i) {
+        gl_Position = coords[i];
+        // avoid if-else with step
+        gColor = step(2, i) * (vColor[1] - vColor[0]) + vColor[0];
+        EmitVertex();
+    }
+    EndPrimitive();
+}
+)";
+
+const char* trailsFragmentShaderSource = R"(
+#version 330 core
+in vec4 gColor;
+
+void main()
+{
+    if(gColor.w == 0.f) discard;
+    gl_FragColor = gColor;
+}
+)";
+
+const char* pointsVertexShaderSource = R"(
+#version 330 core
+layout(location = 0) in vec2 inPos;
+layout(location = 1) in vec4 inColor;
+layout(location = 2) in float inWidth;
+
+out vec4 vColor;
+
+void main()
+{
+    gl_Position = vec4(inPos, 0.0, 1.0);
+    gl_PointSize = 1 + (100 * inWidth);
+    vColor = vec4(inColor.rgb, 1.0f);
+}
+)";
+
+const char* pointsFragmentShaderSource = R"(
+#version 330 core
+in vec4 vColor;
+
+void main()
+{
+    gl_FragColor = vColor;
 }
 )";
 
