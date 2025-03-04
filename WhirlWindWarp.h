@@ -20,17 +20,18 @@
 #ifndef WHIRLWINDWARP_H_
 #define WHIRLWINDWARP_H_
 
+#include <Particle.h>
+
 // C++
 #include <memory>
 #include <string>
 
-class Particle;
 namespace Utils
 {
   class NumberGenerator;
 }
 
-static const int fs = 16;      /** number of forcefields.    */
+static const int fs = 16; /** number of forcefields.    */
 
 /** \struct State
  * \brief Implements screensaver state.
@@ -38,17 +39,18 @@ static const int fs = 16;      /** number of forcefields.    */
  */
 struct State
 {
-    std::string name[fs];           /** The force fields and their parameters.             */
-    bool        enabled[fs];        /** Is field on or off?                                */
-    float       var[fs];            /** Current parameter.                                 */
-    float       optimum[fs];        /** Optimum (central/mean) value.                      */
-    float       acceleration[fs];   /** acceleration?                                      */
-    float       velocity[fs];       /** velocity?                                          */
-    int         numPoints;          /** Number of points.                                  */
-    size_t      tailLenght;         /** tail length.                                       */
-    bool        initted;            /** true if inited and false otherwise. ??             */
-    bool        changedColor;       /** true if changed a point color in the last frame.   */
-    int         hue;                /** hue value.                                         */
+    std::string name[fs];           /** The force fields and their parameters.           */
+    bool        enabled[fs];        /** Is field on or off?                              */
+    float       var[fs];            /** Current parameter.                               */
+    float       optimum[fs];        /** Optimum (central/mean) value.                    */
+    float       acceleration[fs];   /** acceleration?                                    */
+    float       velocity[fs];       /** velocity?                                        */
+    int         numPoints;          /** Number of points.                                */
+    size_t      tailLenght;         /** tail length.                                     */
+    bool        initted;            /** true if inited and false otherwise.              */
+    bool        changedColor;       /** true if changed a point color in the last frame. */
+    int         hue;                /** hue value.                                       */
+    bool        drawTails;          /** true to draw tails, false to draw points.        */
 };
 
 /** \class WindWhirlWarp
@@ -59,11 +61,12 @@ class WhirlWindWarp
 {
   public:
     /** \brief WindWhirlWarp class constructor.
-     * \param[in] generator Random number generator class pointer.
-     * \param[in] numPoints Total number of points.
+     * \param[in] numPoints total number of points.
+     * \param[in] drawTails true to draw particle trails and false otherwise.
+     * \param[in] generator random number generator class pointer.
      *
      */
-    explicit WhirlWindWarp(Utils::NumberGenerator *generator, const int numPoints);
+    explicit WhirlWindWarp(const int numPoints, const bool drawTails = false, Utils::NumberGenerator *generator = nullptr);
 
     /** \brief Updates the state and calls advance() on the scene.
      *  Returns the number of milliseconds of the operation.
@@ -71,7 +74,18 @@ class WhirlWindWarp
      */
     void advance();
 
+    /** \brief Returns the buffer to use in OpenGL
+     *
+     */
+    inline const float *buffer() const
+    { return m_particles->buffer(); }
+
   private:
+    /** \brief Initializes the particles buffer. 
+     *
+     */
+    void init();
+
     /** \brief Updates the state prior to advancing the scene.
      *
      */
@@ -97,7 +111,6 @@ class WhirlWindWarp
     float stars_perturb(float var, float op, float damp, float force);
 
     Utils::NumberGenerator   *m_generator; /** random number generator in [-1,1]. */
-    const int                 m_numPoints; /** number of points.                  */
     struct State              m_state;     /** application state.                 */
     std::unique_ptr<Particle> m_particles; /** particles */
 };

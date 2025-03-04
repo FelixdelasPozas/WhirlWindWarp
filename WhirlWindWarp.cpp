@@ -19,16 +19,21 @@
 
 // Project
 #include <WhirlWindWarp.h>
-#include <Particle.h>
 #include <Utils.h>
 
 //--------------------------------------------------------------------
-WhirlWindWarp::WhirlWindWarp(Utils::NumberGenerator *generator, const int numPoints)
+WhirlWindWarp::WhirlWindWarp(const int numPoints, const bool drawTails, Utils::NumberGenerator *generator)
 : m_generator{generator}
-, m_numPoints{numPoints}
 , m_particles{nullptr}
 {
   m_state.initted = false;
+  m_state.numPoints = numPoints;
+  m_state.drawTails = drawTails;
+
+  if(!generator)
+    m_generator = new Utils::NumberGenerator(-1.f, 1.f);
+
+  init();
 }
 
 //--------------------------------------------------------------------
@@ -77,65 +82,69 @@ void WhirlWindWarp::turn_on_field(int ff)
 }
 
 //--------------------------------------------------------------------
+void WhirlWindWarp::init()
+{
+  if(m_state.initted) return;
+
+  m_state.initted = true;
+
+  // Set up central (optimal) points for each different forcefield.
+  m_state.optimum[1] = 1;
+  m_state.name[1] = "Warp";
+  m_state.optimum[2] = 0;
+  m_state.name[2] = "Rotation";
+  m_state.optimum[3] = 1;
+  m_state.name[3] = "Horizontal asymptote";
+  m_state.optimum[4] = 0;
+  m_state.name[4] = "Vertical asymptote";
+  m_state.optimum[5] = 1;
+  m_state.name[5] = "Vertical asymptote right";
+  m_state.optimum[6] = 1;
+  m_state.name[6] = "Squirge x";
+  m_state.optimum[7] = 1;
+  m_state.name[7] = "Squirge y";
+  m_state.optimum[0] = 0;
+  m_state.name[0] = "Split number (inactive)";
+  m_state.optimum[8] = 0;
+  m_state.name[8] = "Split velocity x";
+  m_state.optimum[9] = 0;
+  m_state.name[9] = "Split velocity y";
+  m_state.optimum[10] = 0;
+  m_state.name[10] = "Horizontal wave amplitude";
+  m_state.optimum[11] = m_generator->get() * 3.141;
+  m_state.name[11] = "Horizontal wave phase (inactive)";
+  m_state.optimum[12] = 0.01;
+  m_state.name[12] = "Horizontal wave frequency (inactive)";
+  m_state.optimum[13] = 0;
+  m_state.name[13] = "Vertical wave amplitude";
+  m_state.optimum[14] = m_generator->get() * 3.141;
+  m_state.name[14] = "Vertical wave phase (inactive)";
+  m_state.optimum[15] = 0.01;
+  m_state.name[15] = "Vertical wave frequency (inactive)";
+
+  /* Initialise parameters to optimum, all off */
+  for (int i = 0; i < fs; ++i)
+  {
+    m_state.var[i] = m_state.optimum[i];
+    m_state.enabled[i] = (m_generator->get() > 0.5 ? true : false);
+    m_state.acceleration[i] = 0.02 * m_generator->get();
+    m_state.velocity[i] = 0;
+  }
+
+  m_state.hue = 180 + 180 * m_generator->get();
+  m_state.tailLenght = 5;
+
+  if (!m_particles)
+    m_particles = std::make_unique<Particle>(m_state, m_generator);
+}
+
+//--------------------------------------------------------------------
 void WhirlWindWarp::preUpdateState()
 {
   m_state.changedColor = false;
 
   if (!m_state.initted)
-  {
-    m_state.initted = 1;
-
-    // Set up central (optimal) points for each different forcefield.
-    m_state.optimum[1] = 1;
-    m_state.name[1] = "Warp";
-    m_state.optimum[2] = 0;
-    m_state.name[2] = "Rotation";
-    m_state.optimum[3] = 1;
-    m_state.name[3] = "Horizontal asymptote";
-    m_state.optimum[4] = 0;
-    m_state.name[4] = "Vertical asymptote";
-    m_state.optimum[5] = 1;
-    m_state.name[5] = "Vertical asymptote right";
-    m_state.optimum[6] = 1;
-    m_state.name[6] = "Squirge x";
-    m_state.optimum[7] = 1;
-    m_state.name[7] = "Squirge y";
-    m_state.optimum[0] = 0;
-    m_state.name[0] = "Split number (inactive)";
-    m_state.optimum[8] = 0;
-    m_state.name[8] = "Split velocity x";
-    m_state.optimum[9] = 0;
-    m_state.name[9] = "Split velocity y";
-    m_state.optimum[10] = 0;
-    m_state.name[10] = "Horizontal wave amplitude";
-    m_state.optimum[11] = m_generator->get() * 3.141;
-    m_state.name[11] = "Horizontal wave phase (inactive)";
-    m_state.optimum[12] = 0.01;
-    m_state.name[12] = "Horizontal wave frequency (inactive)";
-    m_state.optimum[13] = 0;
-    m_state.name[13] = "Vertical wave amplitude";
-    m_state.optimum[14] = m_generator->get() * 3.141;
-    m_state.name[14] = "Vertical wave phase (inactive)";
-    m_state.optimum[15] = 0.01;
-    m_state.name[15] = "Vertical wave frequency (inactive)";
-
-    /* Initialise parameters to optimum, all off */
-    for (int i = 0; i < fs; ++i)
-    {
-      m_state.var[i] = m_state.optimum[i];
-      m_state.enabled[i] = (m_generator->get() > 0.5 ? true : false);
-      m_state.acceleration[i] = 0.02 * m_generator->get();
-      m_state.velocity[i] = 0;
-    }
-
-    m_state.hue = 180 + 180 * m_generator->get();
-    // a point for every 3500 pixels.
-    m_state.numPoints = m_numPoints;
-    m_state.tailLenght = 15;
-
-    if(!m_particles)
-      m_particles = std::make_unique<Particle>(m_state, m_state.numPoints, m_generator);
-  }
+    init();
 }
 
 //--------------------------------------------------------------------

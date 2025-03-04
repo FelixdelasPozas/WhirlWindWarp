@@ -36,6 +36,8 @@
 //----------------------------------------------------------------------------
 int main(int argc, char *argv[]) 
 {
+  // TODO: read arguments. 
+  
   Utils::Configuration config;
   Utils::loadConfiguration(config);
 
@@ -49,6 +51,7 @@ int main(int argc, char *argv[])
   // TODO: get monitors, create contexts.
   int count = 0;
   const auto monitors = glfwGetMonitors(&count);
+  int numPoints = 0;
   for(int i = 0; i < count; ++i)
   {
     const auto monitor = monitors[i];
@@ -58,13 +61,13 @@ int main(int argc, char *argv[])
     std::cout << "pos " << width << "," << height << std::endl;
     auto res = glfwGetVideoMode(monitor);
     std::cout << "res " << res->width << "x" << res->height << std::endl;
+    numPoints = (res->width * res->height) / 3500;
   }
 
   glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
   glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 0);
-  // Create a windowed mode window and its OpenGL context
   glfwWindowHint(GLFW_SAMPLES, config.antialias ? 4 : 1);
-  GLFWwindow *window = glfwCreateWindow(800, 600, "Colored Lines", nullptr, nullptr);
+  GLFWwindow *window = glfwCreateWindow(1280, 1024, "Colored Lines", nullptr, nullptr);
   if (!window)
   {
     glfwTerminate();
@@ -77,10 +80,12 @@ int main(int argc, char *argv[])
   glfwSetMouseButtonCallback(window, Utils::glfwMouseButtonCallback);
   glfwSwapInterval(1);
 
-  const auto failed = load_gl_functions();
-  std::cout << "failed " << failed << " functions." << std::endl;
+  if(load_gl_functions() > 0)
+  {
+    glfwTerminate();
+    Utils::errorCallback(EXIT_FAILURE, "Failed to load OpenGL functions");
+  }
 
-  // Compile shaders
   Utils::GL_program program("default");
   if(config.show_trails)
   {
@@ -94,17 +99,11 @@ int main(int argc, char *argv[])
     program.frag = Utils::loadShader(pointsFragmentShaderSource, GL_FRAGMENT_SHADER);
   }
 
-  // Create shader program
   Utils::initProgram(program);
 
-  // Define line data with separate colors for each endpoint
-    float vertices[] = {
-        // positions      // colors                  // line width
-        0.5f,  0.5f,      1.0f, 0.0f, 0.0f, 0.5f,    0.01f,  // Top Right Red
-       -0.5f,  -0.5f,     0.0f, 1.0f, 0.0f, 1.0f,    0.02f,  // Top Left Green
-       -1.0f, -0.8f,      0.0f, 0.0f, 1.0f, 0.5f,    0.04f,  // Bottom Right Blue
-        1.0f, 0.8f,       0.0f, 1.0f, 0.0f, 1.0f,    0.01f   // Bottom Left Yellow
-    };
+  WhirlWindWarp www(numPoints);
+
+  auto vertices = www.buffer();
 
   // Create VAO and VBO
   GLuint VAO, VBO;
@@ -113,7 +112,7 @@ int main(int argc, char *argv[])
 
   glBindVertexArray(VAO);
   glBindBuffer(GL_ARRAY_BUFFER, VBO);
-  glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_DYNAMIC_DRAW);
+  glBufferData(GL_ARRAY_BUFFER, numPoints * 7, vertices, GL_DYNAMIC_DRAW);
 
   const GLsizei stride = 7 * sizeof(float);
   // Position and color attributes for endpoint 1
@@ -141,7 +140,7 @@ int main(int argc, char *argv[])
     glDepthMask(GL_FALSE);
 
     if(config.antialias)
-      glEnable(GL_MULTISAMPLE);  
+      glEnable(GL_MULTISAMPLE);
 
     glEnable(GL_BLEND);
     glBlendEquation(GL_MAX);
@@ -154,21 +153,18 @@ int main(int argc, char *argv[])
     else
       glEnable(GL_PROGRAM_POINT_SIZE);
 
+    www.advance();
+
     glUseProgram(program.program);
 
     glBindVertexArray(VAO);
     glBindBuffer(GL_ARRAY_BUFFER, VBO);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_DYNAMIC_DRAW );
+    glBufferData(GL_ARRAY_BUFFER, numPoints * 7, vertices, GL_DYNAMIC_DRAW);
 
     if(config.show_trails)
       glDrawArrays(GL_LINES, 0, 4); // Draw two lines
     else
-      glDrawArrays(GL_POINTS, 0, 4);
-
-    vertices[0] = -0.5 + std::fabs(std::sin(glfwGetTime()));
-    vertices[7] = 0.5 - std::fabs(std::sin(glfwGetTime()));
-    vertices[14] = -1 + std::fabs(std::sin(glfwGetTime()));
-    vertices[21] = 1 - std::fabs(std::sin(glfwGetTime()));
+      glDrawArrays(GL_POINTS, 0, numPoints);
 
     glfwSwapBuffers(window);
 
@@ -195,50 +191,4 @@ int main(int argc, char *argv[])
   glfwDestroyWindow(window);
   glfwTerminate();
   return EXIT_SUCCESS;
-}
-
-//-----------------------------------------------------------------
-int unused(int argc, char *argv[])
-{
-  // QCommandLineParser uses unix-like '-' for flags, while windows uses '/'. There is no way for QCommandLineParser to adapt to it
-  // so we'll need to change all characters first. Also the 'c' option can have an optional value, can be present or not, and
-  // QCommandLineParser also doesn't support that so we'll need to truncate the argument to void that value (parent window handler?).
-  for(int i = 1; i < argc; ++i)
-  {
-    bool dash = false;
-    bool clear = false;
-    for(char *j = argv[i]; *j; ++j)
-    {
-      if(*j == '/')
-      {
-        *j = '-';
-        dash = true;
-      }
-      else
-      {
-        if(dash)
-        {
-          if(*j == 'c' || *j == 'C') clear = true;
-          dash = false;
-        }
-        else
-        {
-          if(clear)
-          {
-            *j = '\0';
-            break;
-          }
-        }
-      }
-    }
-  }
-
-  Utils::Configuration config;
-  Utils::loadConfiguration(config);
-
-  std::cout << config;
-
-  //Utils::saveConfiguration(config);
-
-  return 0;
 }

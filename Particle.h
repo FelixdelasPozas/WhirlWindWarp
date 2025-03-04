@@ -41,11 +41,10 @@ class Particle
   public:
     /** \brief Particle class constructor.
      * \param[in] state application state.
-     * \param[in] number total number of particles.
      * \param[in] generator random number generator.
      *
      */
-    explicit Particle(State &state, const unsigned int number, Utils::NumberGenerator *generator);
+    explicit Particle(State &state, Utils::NumberGenerator *generator);
 
     /** \brief Particle class virtual destructor.
      *
@@ -53,32 +52,34 @@ class Particle
     virtual ~Particle()
     {}
 
+    /** \brief Advances the particles.
+     *
+     */
     void advance();
+
+    inline const float *buffer() const
+    { return m_buffer.data(); }
 
   private:
     /** \brief Initializes the particle container with random numbers.
-     * \param[in] number number of points.
      *
      */
-    void init(const unsigned int number);
+    void init();
 
     /** \brief Resets the values of the given point index.
-     * \param[in] point point index.
+     * \param[in] idx point index.
      *
      */
-    void reset(const int point);
+    void reset(const int idx);
 
     Utils::NumberGenerator          *m_generator;  /** random number generator in [-1.1].         */
     State                           &m_state;      /** application state.                         */
-    std::vector<double>              m_x;          /** x position [-1.0, 1.0].                    */
-    std::vector<double>              m_y;          /** y position [-1.0, 1.0].                    */
-    std::vector<int>                 m_width;      /** trail width [1-3].                         */
-    std::vector<std::vector<double>> m_tailX;      /** previous x positions.                      */
-    std::vector<std::vector<double>> m_tailY;      /** previous y positions.                      */
-    std::vector<Utils::rgb>          m_color;      /** color.                                     */
-    bool                             m_drawTails;  /** true to draw point tails, false otherwise. */
-    bool                             m_fadeTails;  /** true to fade the tails, false otherwise.   */
-    size_t                           m_tailLength; /** number of previous positions to store.     */
+    std::vector<float>               m_buffer;     /** data buffer.                               */
+
+    /* Format of the buffer (Size per particle 7 floats) */
+    /* - Position 2 floats                               */
+    /* - Color RGBA 4 floats                             */
+    /* - Width 1 float                                   */
 };
 
 #endif // PARTICLE_H_

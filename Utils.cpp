@@ -301,7 +301,7 @@ Utils::rgb Utils::hsv2rgb(Utils::hsv in)
   if (hh >= 360.0)
     hh = 0.0;
   hh /= 60.0;
-  i = (long)hh;
+  i = static_cast<long>(hh);
   ff = hh - i;
   p = in.v * (1.0 - in.s);
   q = in.v * (1.0 - (in.s * ff));
@@ -324,7 +324,6 @@ Utils::rgb Utils::hsv2rgb(Utils::hsv in)
     out.g = in.v;
     out.b = t;
     break;
-
   case 3:
     out.r = p;
     out.g = q;
