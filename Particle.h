@@ -36,7 +36,7 @@ namespace Utils
  * \brief Implements a particle in the QGraphicsView
  *
  */
-class Particle
+class Particles
 {
   public:
     /** \brief Particle class constructor.
@@ -44,12 +44,12 @@ class Particle
      * \param[in] generator random number generator.
      *
      */
-    explicit Particle(State &state, Utils::NumberGenerator *generator);
+    explicit Particles(State &state, Utils::NumberGenerator *generator);
 
     /** \brief Particle class virtual destructor.
      *
      */
-    virtual ~Particle()
+    virtual ~Particles()
     {}
 
     /** \brief Advances the particles.
@@ -57,6 +57,9 @@ class Particle
      */
     void advance();
 
+    /** \brief Returns the buffer pointer.
+     *
+     */
     inline const float *buffer() const
     { return m_buffer.data(); }
 
@@ -72,14 +75,24 @@ class Particle
      */
     void reset(const int idx);
 
-    Utils::NumberGenerator          *m_generator;  /** random number generator in [-1.1].         */
-    State                           &m_state;      /** application state.                         */
-    std::vector<float>               m_buffer;     /** data buffer.                               */
+    Utils::NumberGenerator *m_generator;  /** random number generator in [-1.1]. */
+    State                  &m_state;      /** application state.                 */
+    std::vector<float>      m_buffer;     /** data buffer.                       */
 
-    /* Format of the buffer (Size per particle 7 floats) */
-    /* - Position 2 floats                               */
-    /* - Color RGBA 4 floats                             */
-    /* - Width 1 float                                   */
+    /** \struct Particle
+     * \brief Particle components.
+     *
+     */
+    struct __attribute__((__packed__)) Particle
+    {
+      float x; /** x posision.          */
+      float y; /** y position.          */
+      float r; /** red component.       */
+      float g; /** green component.     */
+      float b; /** blue component.      */
+      float a; /** alpha component.     */
+      float w; /** particle/trail width */
+    };
 };
 
 #endif // PARTICLE_H_

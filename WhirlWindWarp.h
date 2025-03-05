@@ -46,11 +46,9 @@ struct State
     float       acceleration[fs];   /** acceleration?                                    */
     float       velocity[fs];       /** velocity?                                        */
     int         numPoints;          /** Number of points.                                */
-    size_t      tailLenght;         /** tail length.                                     */
     bool        initted;            /** true if inited and false otherwise.              */
     bool        changedColor;       /** true if changed a point color in the last frame. */
     int         hue;                /** hue value.                                       */
-    bool        drawTails;          /** true to draw tails, false to draw points.        */
 };
 
 /** \class WindWhirlWarp
@@ -110,9 +108,9 @@ class WhirlWindWarp
      */
     float stars_perturb(float var, float op, float damp, float force);
 
-    Utils::NumberGenerator   *m_generator; /** random number generator in [-1,1]. */
-    struct State              m_state;     /** application state.                 */
-    std::unique_ptr<Particle> m_particles; /** particles */
+    Utils::NumberGenerator    *m_generator; /** random number generator in [-1,1]. */
+    struct State               m_state;     /** application state.                 */
+    std::unique_ptr<Particles> m_particles; /** particles */
 };
 
 #endif // WHIRLWINDWARP_H_

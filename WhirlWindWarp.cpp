@@ -28,7 +28,6 @@ WhirlWindWarp::WhirlWindWarp(const int numPoints, const bool drawTails, Utils::N
 {
   m_state.initted = false;
   m_state.numPoints = numPoints;
-  m_state.drawTails = drawTails;
 
   if(!generator)
     m_generator = new Utils::NumberGenerator(-1.f, 1.f);
@@ -132,10 +131,9 @@ void WhirlWindWarp::init()
   }
 
   m_state.hue = 180 + 180 * m_generator->get();
-  m_state.tailLenght = 5;
 
   if (!m_particles)
-    m_particles = std::make_unique<Particle>(m_state, m_generator);
+    m_particles = std::make_unique<Particles>(m_state, m_generator);
 }
 
 //--------------------------------------------------------------------

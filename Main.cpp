@@ -87,17 +87,8 @@ int main(int argc, char *argv[])
   }
 
   Utils::GL_program program("default");
-  if(config.show_trails)
-  {
-    program.vert = Utils::loadShader(trailsVertexShaderSource, GL_VERTEX_SHADER);
-    program.geom = Utils::loadShader(trailsGeometryShaderSource, GL_GEOMETRY_SHADER);
-    program.frag = Utils::loadShader(trailsFragmentShaderSource, GL_FRAGMENT_SHADER);
-  }
-  else
-  {
-    program.vert = Utils::loadShader(pointsVertexShaderSource, GL_VERTEX_SHADER);
-    program.frag = Utils::loadShader(pointsFragmentShaderSource, GL_FRAGMENT_SHADER);
-  }
+  program.vert = Utils::loadShader(vertexShaderSource, GL_VERTEX_SHADER);
+  program.frag = Utils::loadShader(fragmentShaderSource, GL_FRAGMENT_SHADER);
 
   Utils::initProgram(program);
 
@@ -145,13 +136,7 @@ int main(int argc, char *argv[])
     glEnable(GL_BLEND);
     glBlendEquation(GL_MAX);
 
-    if(config.show_trails)
-    {
-      glEnable(GL_BLEND);
-      glBlendEquation(GL_MAX);
-    }
-    else
-      glEnable(GL_PROGRAM_POINT_SIZE);
+    glEnable(GL_PROGRAM_POINT_SIZE);
 
     www.advance();
 
@@ -161,11 +146,7 @@ int main(int argc, char *argv[])
     glBindBuffer(GL_ARRAY_BUFFER, VBO);
     glBufferData(GL_ARRAY_BUFFER, numPoints * 7, vertices, GL_DYNAMIC_DRAW);
 
-    if(config.show_trails)
-      glDrawArrays(GL_LINES, 0, 4); // Draw two lines
-    else
-      glDrawArrays(GL_POINTS, 0, numPoints);
-
+    glDrawArrays(GL_POINTS, 0, numPoints);
     glfwSwapBuffers(window);
 
     // FPS ------------------------------

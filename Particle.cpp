@@ -28,7 +28,7 @@
 #include <cassert>
 
 //--------------------------------------------------------------------
-Particle::Particle(State &state, Utils::NumberGenerator* generator)
+Particles::Particles(State &state, Utils::NumberGenerator* generator)
 : m_generator   (generator)
 , m_state       (state)
 {
@@ -37,25 +37,14 @@ Particle::Particle(State &state, Utils::NumberGenerator* generator)
 }
 
 //--------------------------------------------------------------------
-void Particle::advance()
+void Particles::advance()
 {
-  // TODO
   for(int i = 0; i < m_state.numPoints; ++i)
   {
-    // Move a star according to acting forcefields.
-    if(m_state.tailLenght != 0)
-    {
-      // if(m_tailX[i].size() == m_tailLength) m_tailX[i].erase(m_tailX[i].begin());
-      // if(m_tailY[i].size() == m_tailLength) m_tailY[i].erase(m_tailY[i].begin());
+    Particle *pos = reinterpret_cast<Particle*>(m_buffer.data()) + i;
 
-      // m_tailX[i].push_back(m_x[i]);
-      // m_tailY[i].push_back(m_y[i]);
-    }
-
-    auto pos = m_buffer.data() + (i * 7);
-
-    double x = pos[0];
-    double y = pos[1];
+    double x = pos->x;
+    double y = pos->y;
 
     // In theory all these if checks are unnecessary,
     // since each forcefield effect should do nothing when its var = op.
@@ -149,8 +138,8 @@ void Particle::advance()
       }
       else
       {
-        pos[0] = x;
-        pos[1] = y;
+        pos->x = x;
+        pos->y = y;
       }
     }
 
@@ -161,10 +150,10 @@ void Particle::advance()
       // Change one of the allocated colours to something near the current hue.
       // By changing a random colour, we sometimes get a tight colour spread, sometime a diverse one.
       const auto rgbColor = Utils::hsv2rgb(hsvColor);
-      pos[2] = rgbColor.r;
-      pos[3] = rgbColor.g;
-      pos[4] = rgbColor.b;
-      pos[5] = 1.f;
+      pos->r = rgbColor.r;
+      pos->g = rgbColor.g;
+      pos->b = rgbColor.b;
+      pos->a = 1.f;
 
       m_state.hue = m_state.hue + 0.5 + m_generator->get() * 9.0;
       if (m_state.hue < 0) m_state.hue += 360;
@@ -176,71 +165,35 @@ void Particle::advance()
 }
 
 //--------------------------------------------------------------------
-void Particle::init()
+void Particles::init()
 {
-  const auto elements = (1 + (m_state.drawTails ? m_state.tailLenght : 0)) * m_state.numPoints * 7;
-  
-  m_buffer = std::vector<float>((elements*7),0);
+  m_buffer = std::vector<float>((m_state.numPoints*sizeof(Particle)),0);
 
-  std::vector<size_t> index[elements];
+  std::vector<size_t> index[m_state.numPoints];
   std::iota(index->begin(), index->end(), 0);
 
   auto resetBuffer = [&](const size_t pos)
   {
-    const int num = 1 + (m_state.drawTails ? m_state.tailLenght : 0);
-    reset(pos * num * 7); 
+    reset(pos); 
   };
   std::for_each(std::execution::par_unseq, index->cbegin(), index->cend(), resetBuffer);
 }
 
 //--------------------------------------------------------------------
-void Particle::reset(const int idx)
+void Particles::reset(const int idx)
 {
-  auto pos = m_buffer.data() + (7*idx);
+  auto pos = reinterpret_cast<Particle*>(m_buffer.data()) + idx;
 
-  memset(pos, 0, sizeof(float) * 7);
-  pos[0] = m_generator->get();
-  pos[1] = m_generator->get();
+  memset(pos, 0, sizeof(Particle));
+  pos->x = m_generator->get();
+  pos->y = m_generator->get();
 
   Utils::hsv hsvColor((m_generator->get() + 1.0) * 180.0, 0.6 + 0.4 * m_generator->get(), 0.6 + 0.4 * m_generator->get());
   const auto rgbColor = Utils::hsv2rgb(hsvColor);
-  pos[2] = rgbColor.r;
-  pos[3] = rgbColor.g;
-  pos[4] = rgbColor.b;
-  pos[5] = 1.f;
+  pos->r = rgbColor.r;
+  pos->g = rgbColor.g;
+  pos->b = rgbColor.b;
+  pos->a = 1.f;
 
-  pos[6] = 1 + (m_generator->get() + 1);
+  pos->w = 1 + (m_generator->get() + 1);
 };
-
-//--------------------------------------------------------------------
-// void Particle::paint()
-// {
-  // for(int i = 0; i < m_state.numPoints; ++i)
-  // {
-  //   auto color = m_color[i];
-
-  //   if(m_drawTails && m_tailX[i].size() > 0)
-  //   {
-  //     for(int j = m_tailX[i].size() - 1; j > 0; --j)
-  //     {
-  //       rgb fadeColor = color;;
-  //       if(m_fadeTails)
-  //       {
-  //         const auto factor = std::pow(0.75, m_tailX[i].size()-j);
-  //         fadeColor = fadeColor * factor;
-  //       }
-
-  //       painter->drawLine(transform(m_tailX[i].at(j)) * width, transform(m_tailY[i].at(j)) * height, transform(m_tailX[i].at(j-1)) * width, transform(m_tailY[i].at(j-1)) * height);
-  //     }
-
-  //     pen.setColor(m_color[i]);
-  //     painter->setPen(pen);
-  //     painter->drawLine(transform(m_x[i]) * width, transform(m_y[i]) * height, transform(m_tailX[i].last()) * width, transform(m_tailY[i].last()) * height);
-  //   }
-
-  //   pen.setColor(m_color[i]);
-  //   painter->setPen(pen);
-  //   painter->drawPoint(transform(m_x[i]) * width, transform(m_y[i]) * height);
-  // }
-// }
-
