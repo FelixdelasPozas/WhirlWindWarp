@@ -50,19 +50,45 @@ int main(int argc, char *argv[])
 
   // TODO: get monitors, create contexts.
   int count = 0;
-  const auto monitors = glfwGetMonitors(&count);
-  int numPoints = 0;
+  const auto glfwmonitors = glfwGetMonitors(&count);
+  if(!glfwmonitors)
+  {
+    glfwTerminate();
+    Utils::errorCallback(EXIT_FAILURE, "No monitors detected");
+  }
+
+  int xMin = std::numeric_limits<int>::max(), yMin = std::numeric_limits<int>::max();
+  int virtualWidth = 0, virtualHeight = 0;
+  Utils::Monitors monitors(count);
+
   for(int i = 0; i < count; ++i)
   {
-    const auto monitor = monitors[i];
-    std::cout << "monitor " << glfwGetMonitorName(monitor) << std::endl;
-    int width, height;
-    glfwGetMonitorPos(monitor, &width, &height);
-    std::cout << "pos " << width << "," << height << std::endl;
-    auto res = glfwGetVideoMode(monitor);
-    std::cout << "res " << res->width << "x" << res->height << std::endl;
-    numPoints = (res->width * res->height) / 3500;
+    const auto glfwmonitor = glfwmonitors[i];
+    int xPos, yPos;
+    glfwGetMonitorPos(glfwmonitor, &xPos, &yPos);
+    const auto res = glfwGetVideoMode(glfwmonitor);
+
+    monitors[i].name = glfwGetMonitorName(glfwmonitor);
+    monitors[i].xPos = xPos;
+    monitors[i].yPos = yPos;
+    monitors[i].width = res->width;
+    monitors[i].height = res->height;
+
+    xMin = std::min(xMin, xPos);
+    yMin = std::min(yMin, yPos);
+    virtualWidth = std::max(virtualWidth, xPos + res->width);
+    virtualHeight = std::max(virtualHeight, yPos + res->height);
   }
+
+  // compute factors and modifiers for the points to draw in this monitor.
+  for(int i = 0; i < count; ++i)
+  {
+    monitors[i].xMultiplier = virtualWidth / monitors[i].width;
+    monitors[i].yMultiplier = virtualHeight / monitors[i].height;
+    monitors[i].xFactor = - (static_cast<double>(monitors[i].xPos)  / virtualWidth) * monitors[i].xMultiplier;
+    monitors[i].yFactor = - (static_cast<double>(monitors[i].yPos)  / virtualHeight) * monitors[i].yMultiplier;
+  }
+  const int numPoints = (virtualWidth * virtualHeight) / 1000; // one point per 1000 pixels.
 
   glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
   glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 0);

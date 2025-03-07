@@ -138,6 +138,31 @@ namespace Utils
     Configuration(): line_width{1}, point_size{2}, antialias{true}, show_trails{true} {};
   };
 
+  /** \struct Monitor
+   * \brief Contains monitor resolutions and drawing coordinates.
+   *
+   */
+  struct Monitor
+  {
+    std::string name;   /** monitor name. */
+    int width;          /** monitor resolution width */
+    int height;         /** monitor resolution height. */
+    int xPos;           /** monitor x position in the virtual resolution. */
+    int yPos;           /** monitor y position in the virtual resolution. */
+    double xMultiplier; /** width mutiplier to apply to scene. */
+    double yMultiplier; /** height multiplier to apply to scene. */
+    double xFactor;     /** factor to add to x coords for this monitor. */
+    double yFactor;     /** factor to add to y coords for this monitor. */
+  };
+  using Monitors = std::vector<Monitor>;
+
+  /** \brief Dump Monitor information, for debugging purposes.
+   * \param[inout] os Stream
+   * \param[in] monitor Monitor struct reference.
+   *
+   */
+  std::ostream& operator<<(std::ostream& os, const struct Monitor &monitor);
+
   /** \brief Dump Configuration information, for debugging purposes.
    * \param[inout] os Stream
    * \param[in] config Configuration struct reference.

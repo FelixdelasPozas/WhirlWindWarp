@@ -41,6 +41,22 @@ LPCSTR KEY_POINTSIZE = "PointSize";
 LPCSTR KEY_SHOWTRAIL = "ShowTrail";
 
 //----------------------------------------------------------------------------
+std::ostream &Utils::operator<<(std::ostream &os, const Monitor &monitor)
+{
+  os << "Monitor -----------" << std::endl
+     << "x pos: " << monitor.xPos << '\n'
+     << "y pos: " << monitor.yPos << '\n'
+     << "width: " << monitor.width << '\n'
+     << "height: " << monitor.height << '\n'
+     << "x mult: " << monitor.xMultiplier << '\n'
+     << "y mult: " << monitor.yMultiplier << '\n'
+     << "x factor: " << monitor.xFactor << '\n'
+     << "y factor: " << monitor.yFactor << std::endl;
+
+  return os;
+}
+
+//----------------------------------------------------------------------------
 std::ostream &Utils::operator<<(std::ostream &os, const Configuration &config)
 {
   os << "Config -----------" << std::endl
