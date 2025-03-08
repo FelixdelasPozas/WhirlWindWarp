@@ -149,10 +149,10 @@ namespace Utils
     int height;         /** monitor resolution height. */
     int xPos;           /** monitor x position in the virtual resolution. */
     int yPos;           /** monitor y position in the virtual resolution. */
-    double xMultiplier; /** width mutiplier to apply to scene. */
-    double yMultiplier; /** height multiplier to apply to scene. */
-    double xFactor;     /** factor to add to x coords for this monitor. */
-    double yFactor;     /** factor to add to y coords for this monitor. */
+    float xMultiplier;  /** width mutiplier to apply to scene. */
+    float yMultiplier;  /** height multiplier to apply to scene. */
+    float xFactor;      /** factor to add to x coords for this monitor. */
+    float yFactor;      /** factor to add to y coords for this monitor. */
   };
   using Monitors = std::vector<Monitor>;
 

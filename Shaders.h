@@ -26,11 +26,17 @@ layout(location = 0) in vec2 inPos;
 layout(location = 1) in vec4 inColor;
 layout(location = 2) in float inWidth;
 
+uniform float xMult;
+uniform float yMult;
+uniform float xFactor;
+uniform float yFactor;
+
 out vec4 vColor;
 
 void main()
 {
-    gl_Position = vec4(inPos, 0.0, 1.0);
+    vec2 pos = ((inPos + vec2(1, 1)) * vec2(xMult, yMult)) - vec2(1, 1) + vec2(xFactor, yFactor);
+    gl_Position = vec4(pos, 0.0, 1.0);
     gl_PointSize = max(1.f,inWidth);
     vColor = vec4(inColor.rgb, 1.0f);
 }
@@ -43,6 +49,30 @@ in vec4 vColor;
 void main()
 {
     gl_FragColor = vColor;
+}
+)";
+
+const char* ppVertexShaderSource =  R"(
+#version 330 core
+layout(location = 0) in vec2 aPos;
+out vec2 TexCoord;
+
+void main()
+{
+    gl_Position = vec4(aPos, 1.0, 1.0);
+    TexCoord = aPos * 0.5 + 0.5;
+}
+)";
+
+const char* ppFragmentShaderSource = R"(
+#version 330 core
+in vec2 TexCoord;
+
+uniform sampler2D screenTexture;
+
+void main()
+{
+    gl_FragColor = texture(screenTexture, TexCoord);
 }
 )";
 

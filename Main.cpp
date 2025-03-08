@@ -85,8 +85,8 @@ int main(int argc, char *argv[])
   {
     monitors[i].xMultiplier = virtualWidth / monitors[i].width;
     monitors[i].yMultiplier = virtualHeight / monitors[i].height;
-    monitors[i].xFactor = - (static_cast<double>(monitors[i].xPos)  / virtualWidth) * monitors[i].xMultiplier;
-    monitors[i].yFactor = - (static_cast<double>(monitors[i].yPos)  / virtualHeight) * monitors[i].yMultiplier;
+    monitors[i].xFactor = - (static_cast<float>(monitors[i].xPos)  / virtualWidth) * monitors[i].xMultiplier;
+    monitors[i].yFactor = - (static_cast<float>(monitors[i].yPos)  / virtualHeight) * monitors[i].yMultiplier;
   }
   const int numPoints = (virtualWidth * virtualHeight) / 1000; // one point per 1000 pixels.
 
@@ -117,6 +117,12 @@ int main(int argc, char *argv[])
   program.frag = Utils::loadShader(fragmentShaderSource, GL_FRAGMENT_SHADER);
 
   Utils::initProgram(program);
+
+  // uniforms to compute which points draw in witch monitor.
+  const auto uxMult = glGetUniformLocation(program.program, "xMult");
+  const auto uyMult = glGetUniformLocation(program.program, "yMult");
+  const auto uxFactor = glGetUniformLocation(program.program, "xFactor");
+  const auto uyFactor = glGetUniformLocation(program.program, "yFactor");
 
   WhirlWindWarp www(numPoints);
 
@@ -171,6 +177,11 @@ int main(int argc, char *argv[])
     glBindVertexArray(VAO);
     glBindBuffer(GL_ARRAY_BUFFER, VBO);
     glBufferData(GL_ARRAY_BUFFER, numPoints * 7, vertices, GL_DYNAMIC_DRAW);
+
+    glUniform1fv(uxMult, 1, &(monitors[0].xMultiplier));
+    glUniform1fv(uyMult, 1, &(monitors[0].yMultiplier));
+    glUniform1fv(uxFactor, 1, &(monitors[0].xFactor));
+    glUniform1fv(uyFactor, 1, &(monitors[0].yFactor));
 
     glDrawArrays(GL_POINTS, 0, numPoints);
     glfwSwapBuffers(window);

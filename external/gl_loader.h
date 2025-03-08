@@ -96,6 +96,7 @@ int load_gl_functions();
 #define glBlendEquation ((PFNGLBLENDEQUATIONPROC)gl_function_pointers[61])
 #define glBlendFuncSeparate ((PFNGLBLENDFUNCSEPARATEPROC)gl_function_pointers[62])
 #define glBlendColor ((PFNGLBLENDCOLORPROC)gl_function_pointers[63])
+#define glUniform1fv ((PFNGLUNIFORM1FVPROC)gl_function_pointers[64])
 
 // GL debug function definitions.
 #ifdef DEBUG

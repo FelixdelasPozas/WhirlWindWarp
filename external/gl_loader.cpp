@@ -109,7 +109,8 @@ const char *gl_function_names[] = {
 	"glGetProgramInfoLog",
 	"glBlendEquation",
 	"glBlendFuncSeparate",
-	"glBlendColor"
+	"glBlendColor",
+	"glUniform1fv"
 };
 
 /** \brief Array of GL function pointers.
