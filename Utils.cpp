@@ -33,6 +33,9 @@
 #include <cassert>
 #include <cstdlib>
 #include <ctime>
+#include <fstream>
+#include <memory>
+#include <vector>
 
 LPCSTR KEY_BASEKEY   = "Software\\Felix de las Pozas Alvarez\\WhirlWindWarp";
 LPCSTR KEY_LINEWIDTH = "LineWidth";
@@ -225,6 +228,25 @@ void Utils::initProgram(GL_program &program, attribList attribs)
 		glDeleteProgram(program.program);
 		errorCallback(EXIT_FAILURE, errorString.c_str());
 	}  
+}
+
+//----------------------------------------------------------------------------
+void Utils::saveScreenshotToFile(const std::string &filename, int windowWidth, int windowHeight)
+{
+  const int numberOfPixels = windowWidth * windowHeight * 3;
+  auto pixels = std::make_unique<std::vector<unsigned char>>(numberOfPixels);
+
+  glPixelStorei(GL_PACK_ALIGNMENT, 1);
+  glReadBuffer(GL_FRONT);
+  glReadPixels(0, 0, windowWidth, windowHeight, GL_BGR_EXT, GL_UNSIGNED_BYTE, pixels->data());
+
+  std::ofstream outputFile(filename.c_str(), std::ofstream::out);
+  short header[] = {0, 2, 0, 0, 0, 0, (short)windowWidth, (short)windowHeight, 24};
+  outputFile.write(reinterpret_cast<const char *>(header), sizeof(header));
+  outputFile.write(reinterpret_cast<const char *>(pixels->data()), numberOfPixels);
+  outputFile.close();
+
+  std::cout << "Finish writing to file: " << filename << std::endl;
 }
 
 //----------------------------------------------------------------------------

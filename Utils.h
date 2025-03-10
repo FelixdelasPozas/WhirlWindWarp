@@ -227,6 +227,14 @@ namespace Utils
    * \param[inout] program GL program struct reference.
    */
   void initProgram(GL_program &program, attribList attribs = attribList());
+
+  /** \brief Helper method to save the current framebuffer to a TGA file.
+   * \param[in] filename Filename of output TGA file on disc.
+   * \param[in] windowWidth Width in pixels of the framebuffer.
+   * \param[in] windowHeight Height in pixels of the framebuffer. 
+   *
+   */
+  void saveScreenshotToFile(const std::string &filename, int windowWidth, int windowHeight);
 }
 
 #endif // _UTILS_H_

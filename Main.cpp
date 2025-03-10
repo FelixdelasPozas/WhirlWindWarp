@@ -104,6 +104,8 @@ int main(int argc, char *argv[])
   glfwSetKeyCallback(window, Utils::glfwKeyCallback);
   glfwSetCursorPosCallback(window, Utils::glfwMousePosCallback);
   glfwSetMouseButtonCallback(window, Utils::glfwMouseButtonCallback);
+  glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+  glfwSetInputMode(window, GLFW_RAW_MOUSE_MOTION, GLFW_TRUE);
   glfwSwapInterval(1);
 
   if(load_gl_functions() > 0)
@@ -200,6 +202,8 @@ int main(int argc, char *argv[])
     glfwPollEvents();
     glBindVertexArray(0);
   }
+
+  Utils::saveScreenshotToFile("C:\\Users\\felix\\Downloads\\prueba.tga", 1280, 1024);
 
   // Cleanup
   glDeleteVertexArrays(1, &VAO);
