@@ -222,7 +222,7 @@ void Utils::initProgram(GL_program &program, attribList attribs)
 		char* logString = new char[logLen];
     memset(logString, 0, logLen);
 		glGetProgramInfoLog(program.program, logLen, NULL, logString);
-    const std::string errorString = std::string("GL program link failed: ") + (logLen > 0 ? logString : "empty");
+    const std::string errorString = std::string("GL program \"") + program.name + "\" link failed: " + (logLen > 0 ? logString : "empty");
 		delete[] logString;
 
 		glDeleteProgram(program.program);

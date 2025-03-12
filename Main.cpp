@@ -33,6 +33,16 @@
 // C++
 #include <iostream>
 
+const float quadVertices[] = {
+    -1.0f, 1.0f,  // Top-left
+    -1.0f, -1.0f, // Bottom-left
+    1.0f, -1.0f,  // Bottom-right
+    1.0f, 1.0f    // Top-right
+};
+
+const unsigned int quadIndices[] = {0, 1, 2,
+                                    0, 2, 3};
+
 //----------------------------------------------------------------------------
 int main(int argc, char *argv[]) 
 {
@@ -120,6 +130,12 @@ int main(int argc, char *argv[])
 
   Utils::initProgram(program);
 
+  Utils::GL_program postprogram("post-processing");
+  postprogram.vert = Utils::loadShader(ppVertexShaderSource, GL_VERTEX_SHADER);
+  postprogram.frag = Utils::loadShader(ppFragmentShaderSource, GL_FRAGMENT_SHADER);
+
+  Utils::initProgram(postprogram);
+
   // uniforms to compute which points draw in witch monitor.
   const auto uxMult = glGetUniformLocation(program.program, "xMult");
   const auto uyMult = glGetUniformLocation(program.program, "yMult");
@@ -157,18 +173,59 @@ int main(int argc, char *argv[])
   static unsigned long fps = 0;
   // FPS ------------------------------
 
+  // Create VAO and VBOs for post-processing quad
+  GLuint quadVAO, quadVBO, quadEBO;
+  glGenVertexArrays(1, &quadVAO);
+  glGenBuffers(1, &quadVBO);
+  glGenBuffers(1, &quadEBO);
+
+  glBindVertexArray(quadVAO);
+
+  glBindBuffer(GL_ARRAY_BUFFER, quadVBO);
+  glBufferData(GL_ARRAY_BUFFER, sizeof(quadVertices), quadVertices, GL_STATIC_DRAW);
+
+  glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, quadEBO);
+  glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(quadIndices), quadIndices, GL_STATIC_DRAW);
+
+  // Position attribute
+  glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float), (void *)0);
+  glEnableVertexAttribArray(0);
+
+  // Setup framebuffer and texture to accumulate colors
+  GLuint framebuffer;
+  glGenFramebuffers(1, &framebuffer);
+  glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);
+
+  GLuint colorTexture;
+  glGenTextures(1, &colorTexture);
+  glBindTexture(GL_TEXTURE_2D, colorTexture);
+
+  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 1280, 1024, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
+
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+  glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, colorTexture, 0);
+
+  if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
+  {
+    glfwTerminate();
+    Utils::errorCallback(EXIT_FAILURE, "Framebuffer not complete!");
+  }
+
+  glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
   // Render loop
   while (!glfwWindowShouldClose(window))
   {
+    glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);    
     glClearColor(0,0,0,1);
     glClear(GL_COLOR_BUFFER_BIT);
-    glDepthMask(GL_FALSE);
+    glDisable(GL_CULL_FACE);
+	  glDisable(GL_DEPTH_TEST);
 
     if(config.antialias)
       glEnable(GL_MULTISAMPLE);
-
-    glEnable(GL_BLEND);
-    glBlendEquation(GL_MAX);
 
     glEnable(GL_PROGRAM_POINT_SIZE);
 
@@ -186,6 +243,20 @@ int main(int argc, char *argv[])
     glUniform1fv(uyFactor, 1, &(monitors[0].yFactor));
 
     glDrawArrays(GL_POINTS, 0, numPoints);
+
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+		glEnable(GL_BLEND);
+	  glBlendFunc(GL_CONSTANT_COLOR, GL_CONSTANT_ALPHA);
+	  glBlendColor(1.f, 1.f, 1.f, 0.9f);
+	  glBlendEquation(GL_FUNC_ADD);    
+
+    glUseProgram(postprogram.program);
+    glBindVertexArray(quadVAO);
+    glBindTexture(GL_TEXTURE_2D, colorTexture);
+    glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+
+    // Swap buffers and poll events
     glfwSwapBuffers(window);
 
     // FPS ------------------------------
@@ -203,7 +274,7 @@ int main(int argc, char *argv[])
     glBindVertexArray(0);
   }
 
-  Utils::saveScreenshotToFile("C:\\Users\\felix\\Downloads\\prueba.tga", 1280, 1024);
+  //Utils::saveScreenshotToFile("C:\\Users\\felix\\Downloads\\prueba.tga", 1280, 1024);
 
   // Cleanup
   glDeleteVertexArrays(1, &VAO);
