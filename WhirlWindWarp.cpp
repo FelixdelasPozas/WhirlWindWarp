@@ -36,11 +36,14 @@ WhirlWindWarp::WhirlWindWarp(const int numPoints, const bool drawTails, Utils::N
 }
 
 //--------------------------------------------------------------------
-void WhirlWindWarp::advance()
+void WhirlWindWarp::advance(const float time_)
 {
+  static float lastFrameTime = 0;
+  
   preUpdateState();
 
-  m_particles->advance();
+  m_particles->advance(time_ - lastFrameTime);
+  lastFrameTime = time_;
   
   postUpdateState();
 }

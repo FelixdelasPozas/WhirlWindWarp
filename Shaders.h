@@ -35,10 +35,10 @@ out vec4 vColor;
 
 void main()
 {
-    vec2 pos = ((inPos + vec2(1, 1)) * vec2(xMult, yMult)) - vec2(1, 1) + vec2(xFactor, yFactor);
-    gl_Position = vec4(pos, 0.0, 1.0);
+    vec2 pos = ((inPos + vec2(1,1)) * vec2(xMult, yMult)) - vec2((xMult * xFactor) + 1, (yMult * yFactor) + 1);
+    gl_Position = vec4(pos, 0, 1);
     gl_PointSize = max(1.f,inWidth);
-    vColor = vec4(inColor.rgb, 1.0f);
+    vColor = vec4(inColor.rgb, 1);
 }
 )";
 
@@ -59,7 +59,7 @@ out vec2 TexCoord;
 
 void main()
 {
-    gl_Position = vec4(aPos, 1.0, 1.0);
+    gl_Position = vec4(aPos, 1, 1);
     TexCoord = aPos * 0.5 + 0.5;
 }
 )";

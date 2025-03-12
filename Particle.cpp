@@ -27,6 +27,8 @@
 #include <execution>
 #include <cassert>
 
+constexpr float FPS60 = 1.f/60.f;
+
 //--------------------------------------------------------------------
 Particles::Particles(State &state, Utils::NumberGenerator* generator)
 : m_generator   (generator)
@@ -37,8 +39,10 @@ Particles::Particles(State &state, Utils::NumberGenerator* generator)
 }
 
 //--------------------------------------------------------------------
-void Particles::advance()
+void Particles::advance(const float timeIncrement)
 {
+  const float factor = timeIncrement > FPS60 ? 1.f : timeIncrement/FPS60;
+
   for(int i = 0; i < m_state.numPoints; ++i)
   {
     Particle *pos = reinterpret_cast<Particle*>(m_buffer.data()) + i;
@@ -138,8 +142,9 @@ void Particles::advance()
       }
       else
       {
-        pos->x = x;
-        pos->y = y;
+        const auto factorInv = 1 - factor;
+        pos->x = x - ((x - pos->x) * factorInv);
+        pos->y = y - ((y - pos->y) * factorInv);
       }
     }
 

@@ -53,9 +53,10 @@ class Particles
     {}
 
     /** \brief Advances the particles.
+     * \param[in] timeIncrement Passed time since last frame.
      *
      */
-    void advance();
+    void advance(const float timeIncrement);
 
     /** \brief Returns the buffer pointer.
      *

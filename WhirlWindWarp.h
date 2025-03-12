@@ -67,10 +67,10 @@ class WhirlWindWarp
     explicit WhirlWindWarp(const int numPoints, const bool drawTails = false, Utils::NumberGenerator *generator = nullptr);
 
     /** \brief Updates the state and calls advance() on the scene.
-     *  Returns the number of milliseconds of the operation.
+     * \param[in] time_ Current time.
      *
      */
-    void advance();
+    void advance(const float time_);
 
     /** \brief Returns the buffer to use in OpenGL
      *
