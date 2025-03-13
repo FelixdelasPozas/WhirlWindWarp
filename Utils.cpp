@@ -91,13 +91,13 @@ void Utils::loadConfiguration(Configuration &config)
       config.line_width = dataVal;
 
     if(ERROR_SUCCESS == readRegistryValue(KEY_ANTIALIAS))
-      config.antialias = (dataVal == true);
+      config.antialias = (dataVal == 0);
 
     if(ERROR_SUCCESS == readRegistryValue(KEY_POINTSIZE))
       config.point_size = dataVal;
 
     if(ERROR_SUCCESS == readRegistryValue(KEY_SHOWTRAIL))
-      config.show_trails = (dataVal == true);
+      config.show_trails = (dataVal == 0);
 
     RegCloseKey(default_key);
   }
