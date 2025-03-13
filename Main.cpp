@@ -96,7 +96,6 @@ int main(int argc, char *argv[])
     monitors[i].yMultiplier = virtualHeight / monitors[i].height;
     monitors[i].xFactor = (static_cast<float>(monitors[i].xPos)  / virtualWidth) * monitors[i].xMultiplier;
     monitors[i].yFactor = (static_cast<float>(monitors[i].yPos)  / virtualHeight) * monitors[i].yMultiplier;
-    std::cout << monitors[i];
   }
   const int numPoints = (virtualWidth * virtualHeight) / 1000; // one point per 1000 pixels.
 
@@ -110,8 +109,7 @@ int main(int argc, char *argv[])
   {
     const auto monitor = monitors[i];
     const std::string name = "Monitor " + std::to_string(i);
-    //GLFWwindow *window = glfwCreateWindow(monitor.width, monitor.height, name.c_str(), glfwmonitors[i], nullptr);
-    GLFWwindow *window = glfwCreateWindow(800, 800, name.c_str(), nullptr, i > 0 ? windows[0] : nullptr);
+    GLFWwindow *window = glfwCreateWindow(monitor.width, monitor.height, name.c_str(), glfwmonitors[i], i > 0 ? windows[0] : nullptr);
     if (!window)
     {
       glfwTerminate();
@@ -123,7 +121,7 @@ int main(int argc, char *argv[])
     glfwSetKeyCallback(window, Utils::glfwKeyCallback);
     glfwSetCursorPosCallback(window, Utils::glfwMousePosCallback);
     glfwSetMouseButtonCallback(window, Utils::glfwMouseButtonCallback);
-    //glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+    glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
     glfwSetInputMode(window, GLFW_RAW_MOUSE_MOTION, GLFW_TRUE);
     if(i == 0) glfwSwapInterval(1);
 
@@ -204,6 +202,8 @@ int main(int argc, char *argv[])
   std::vector<GLuint> textures;
   for(int i = 0; i < monitorCount; ++i)
   {
+    glfwMakeContextCurrent(windows[i]);
+
     // Setup framebuffer and texture to accumulate colors
     GLuint framebuffer;
     glGenFramebuffers(1, &framebuffer);
@@ -213,7 +213,7 @@ int main(int argc, char *argv[])
     glGenTextures(1, &texture);
     glBindTexture(GL_TEXTURE_2D, texture);
 
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 800, 800, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, monitors[i].width, monitors[i].height, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
 
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
@@ -232,11 +232,6 @@ int main(int argc, char *argv[])
     textures.emplace_back(texture);
   }
 
-  // FPS ------------------------------
-  static float fpsTime = 0;
-  static unsigned long fps = 0;
-  // FPS ------------------------------
-
   // Render loop
   bool finished = false;
   while (!finished)
@@ -249,7 +244,8 @@ int main(int argc, char *argv[])
       finished |= glfwWindowShouldClose(windows[i]);
       glBindFramebuffer(GL_FRAMEBUFFER, framebuffers[i]);    
       glClearColor(0,0,0,1);
-      if(i == 0) glClear(GL_COLOR_BUFFER_BIT);
+      glClear(GL_COLOR_BUFFER_BIT);
+
       glDisable(GL_CULL_FACE);
       glDisable(GL_DEPTH_TEST);
 
@@ -282,12 +278,10 @@ int main(int argc, char *argv[])
       glUniform1fv(uyFactor, 1, &monitors[i].yFactor);
 
       glDrawArrays(GL_POINTS, 0, numPoints);
-      // const auto filename = std::string("C:\\Users\\felix\\Downloads\\prueba") + std::to_string(i) + ".tga";
-      // Utils::saveScreenshotToFile(filename, 800, 800);
 
       glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
-      //if(config.show_trails)
+      if(config.show_trails)
       {
         glEnable(GL_BLEND);
         glBlendFunc(GL_CONSTANT_COLOR, GL_CONSTANT_ALPHA);
@@ -310,23 +304,11 @@ int main(int argc, char *argv[])
       glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
       // Swap buffers and poll events
       glfwSwapBuffers(windows[i]);
+      glDisable(GL_BLEND);
       glBindVertexArray(0);
       glfwPollEvents();
     }
-
-    // FPS ------------------------------
-    ++fps;
-    const auto cTime = glfwGetTime();
-    if(cTime - fpsTime > 1.f) 
-    {
-      std::cout << "fps " << fps << std::endl;
-      fps = 0;
-      fpsTime = cTime;
-    }
-    // FPS ------------------------------
   }
-
-  //Utils::saveScreenshotToFile("C:\\Users\\felix\\Downloads\\prueba.tga", 1280, 1024);
 
   // Cleanup
   glDeleteVertexArrays(1, &VAO);
@@ -344,5 +326,8 @@ int main(int argc, char *argv[])
     glfwDestroyWindow(windows[i]);
 
   glfwTerminate();
+
+  Utils::saveConfiguration(config);
+
   return EXIT_SUCCESS;
 }
