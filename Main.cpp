@@ -50,6 +50,7 @@ int main(int argc, char *argv[])
   
   Utils::Configuration config;
   Utils::loadConfiguration(config);
+  config.show_trails = false;
 
   glfwSetErrorCallback(Utils::errorCallback);
 
@@ -68,6 +69,7 @@ int main(int argc, char *argv[])
 
   int xMin = std::numeric_limits<int>::max(), yMin = std::numeric_limits<int>::max();
   int virtualWidth = 0, virtualHeight = 0;
+  int minPosX = std::numeric_limits<int>::max(), minPosY = std::numeric_limits<int>::max();
   Utils::Monitors monitors(monitorCount);
   
   for(int i = 0; i < monitorCount; ++i)
@@ -87,6 +89,8 @@ int main(int argc, char *argv[])
     yMin = std::min(yMin, yPos);
     virtualWidth = std::max(virtualWidth, xPos + res->width);
     virtualHeight = std::max(virtualHeight, yPos + res->height);
+    minPosX = std::min(xPos, minPosX);
+    minPosY = std::min(yPos, minPosY);
   }
 
   // compute factors and modifiers for the points to draw in this monitor.
@@ -97,36 +101,33 @@ int main(int argc, char *argv[])
     monitors[i].xFactor = (static_cast<float>(monitors[i].xPos)  / virtualWidth) * monitors[i].xMultiplier;
     monitors[i].yFactor = (static_cast<float>(monitors[i].yPos)  / virtualHeight) * monitors[i].yMultiplier;
   }
-  const int numPoints = (virtualWidth * virtualHeight) / 1000; // one point per 1000 pixels.
+  const int numPoints = (virtualWidth * virtualHeight) / 400; // one point per 1000 pixels.
 
   glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
   glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 0);
   glfwWindowHint(GLFW_SAMPLES, config.antialias ? 4 : 1);
-  glfwWindowHint(GLFW_SCALE_TO_MONITOR, GLFW_TRUE);
-
-  std::vector<GLFWwindow *> windows;
-  for(int i = 0; i < monitorCount; ++i)
+  glfwWindowHint(GLFW_DECORATED, false);
+  glfwWindowHint(GLFW_FLOATING, true);
+  glfwWindowHint(GLFW_FOCUS_ON_SHOW, true);
+  glfwWindowHint(GLFW_POSITION_X, minPosX);
+  glfwWindowHint(GLFW_POSITION_Y, minPosY);
+    
+  const std::string name = "Monitor";
+  GLFWwindow *window = glfwCreateWindow(virtualWidth, virtualHeight, name.c_str(), nullptr, nullptr);
+  if (!window)
   {
-    const auto monitor = monitors[i];
-    const std::string name = "Monitor " + std::to_string(i);
-    GLFWwindow *window = glfwCreateWindow(monitor.width, monitor.height, name.c_str(), glfwmonitors[i], i > 0 ? windows[0] : nullptr);
-    if (!window)
-    {
-      glfwTerminate();
-      const std::string msg = std::string("Failed to create GLFW window for monitor ") + monitors[i].name + " (monitor " + std::to_string(i) + ")";
-      Utils::errorCallback(EXIT_FAILURE, msg.c_str());
-    }
-
-    glfwMakeContextCurrent(window);
-    glfwSetKeyCallback(window, Utils::glfwKeyCallback);
-    glfwSetCursorPosCallback(window, Utils::glfwMousePosCallback);
-    glfwSetMouseButtonCallback(window, Utils::glfwMouseButtonCallback);
-    glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
-    glfwSetInputMode(window, GLFW_RAW_MOUSE_MOTION, GLFW_TRUE);
-    if(i == 0) glfwSwapInterval(1);
-
-    windows.emplace_back(window);
+    glfwTerminate();
+    const std::string msg = std::string("Failed to create GLFW window for monitor");
+    Utils::errorCallback(EXIT_FAILURE, msg.c_str());
   }
+
+  glfwMakeContextCurrent(window);
+  glfwSetKeyCallback(window, Utils::glfwKeyCallback);
+  glfwSetCursorPosCallback(window, Utils::glfwMousePosCallback);
+  glfwSetMouseButtonCallback(window, Utils::glfwMouseButtonCallback);
+  glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+  glfwSetInputMode(window, GLFW_RAW_MOUSE_MOTION, GLFW_TRUE);
+  glfwSwapInterval(1);
 
   if(load_gl_functions() > 0)
   {
@@ -134,10 +135,15 @@ int main(int argc, char *argv[])
     Utils::errorCallback(EXIT_FAILURE, "Failed to load OpenGL functions");
   }
 
+  std::cout << "GL Vendor: " << glGetString(GL_VENDOR) << '\n';
+  std::cout << "Renderer: " << glGetString(GL_RENDERER) << '\n';
+  std::cout << "Version: " << glGetString(GL_VERSION) << '\n';
+  std::cout << "Shading language version: " << glGetString(GL_SHADING_LANGUAGE_VERSION) << std::endl;
+
   WhirlWindWarp www(numPoints);
   auto vertices = www.buffer();
 
-  glfwMakeContextCurrent(windows[0]);
+  glfwMakeContextCurrent(window);
 
   Utils::GL_program program("default");
   program.vert = Utils::loadShader(vertexShaderSource, GL_VERTEX_SHADER);
@@ -150,12 +156,6 @@ int main(int argc, char *argv[])
   postprogram.frag = Utils::loadShader(ppFragmentShaderSource, GL_FRAGMENT_SHADER);
 
   Utils::initProgram(postprogram);
-
-  // uniforms to compute which points draw in witch monitor.
-  auto uxMult = glGetUniformLocation(program.program, "xMult");
-  auto uyMult = glGetUniformLocation(program.program, "yMult");
-  auto uxFactor = glGetUniformLocation(program.program, "xFactor");
-  auto uyFactor = glGetUniformLocation(program.program, "yFactor");
 
   // Create VAO and VBO
   GLuint VAO, VBO;
@@ -198,38 +198,26 @@ int main(int argc, char *argv[])
   glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float), (void *)0);
   glEnableVertexAttribArray(0);
 
-  std::vector<GLuint> framebuffers;
-  std::vector<GLuint> textures;
-  for(int i = 0; i < monitorCount; ++i)
+  // Setup framebuffer and texture to accumulate colors
+  GLuint framebuffer;
+  glGenFramebuffers(1, &framebuffer);
+  glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);
+
+  GLuint texture;
+  glGenTextures(1, &texture);
+  glBindTexture(GL_TEXTURE_2D, texture);
+
+  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, virtualWidth, virtualHeight, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
+
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+  glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, texture, 0);
+
+  if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
   {
-    glfwMakeContextCurrent(windows[i]);
-
-    // Setup framebuffer and texture to accumulate colors
-    GLuint framebuffer;
-    glGenFramebuffers(1, &framebuffer);
-    glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);
-
-    GLuint texture;
-    glGenTextures(1, &texture);
-    glBindTexture(GL_TEXTURE_2D, texture);
-
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, monitors[i].width, monitors[i].height, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
-
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-
-    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, texture, 0);
-
-    if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
-    {
-      glfwTerminate();
-      Utils::errorCallback(EXIT_FAILURE, "Framebuffer not complete!");
-    }
-
-    //glBindFramebuffer(GL_FRAMEBUFFER, 0);
-
-    framebuffers.emplace_back(framebuffer);
-    textures.emplace_back(texture);
+    glfwTerminate();
+    Utils::errorCallback(EXIT_FAILURE, "Framebuffer not complete!");
   }
 
   // Render loop
@@ -238,76 +226,68 @@ int main(int argc, char *argv[])
   {
     www.advance(glfwGetTime());
 
-    for(int i = 0; i < monitorCount; ++i)
-    {
-      glfwMakeContextCurrent(windows[i]);
-      finished |= glfwWindowShouldClose(windows[i]);
-      glBindFramebuffer(GL_FRAMEBUFFER, framebuffers[i]);    
-      glClearColor(0,0,0,1);
-      glClear(GL_COLOR_BUFFER_BIT);
+    finished |= glfwWindowShouldClose(window);
+    glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);    
+    glClearColor(0,0,0,1);
+    glClear(GL_COLOR_BUFFER_BIT);
 
-      glDisable(GL_CULL_FACE);
-      glDisable(GL_DEPTH_TEST);
+    glDisable(GL_CULL_FACE);
+    glDisable(GL_DEPTH_TEST);
 
-      if(config.antialias)
-        glEnable(GL_MULTISAMPLE);
+    if(config.antialias)
+      glEnable(GL_MULTISAMPLE);
 
-      glEnable(GL_PROGRAM_POINT_SIZE);
+    glEnable(GL_PROGRAM_POINT_SIZE);
       
-      glUseProgram(program.program);
+    glUseProgram(program.program);
 
-      glBindVertexArray(VAO);
-      glBindBuffer(GL_ARRAY_BUFFER, VBO);
-      glBufferData(GL_ARRAY_BUFFER, numPoints * 7, vertices, GL_DYNAMIC_DRAW);
+    glBindVertexArray(VAO);
+    glBindBuffer(GL_ARRAY_BUFFER, VBO);
+    glBufferData(GL_ARRAY_BUFFER, numPoints * 7, vertices, GL_DYNAMIC_DRAW);
 
-      // Position attribute
-      glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, stride, (void *)0);
-      glEnableVertexAttribArray(0);
+    // Position attribute
+    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, stride, (void *)0);
+    glEnableVertexAttribArray(0);
 
-      // Color attribute
-      glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, stride, (void *)(2 * sizeof(float)));
-      glEnableVertexAttribArray(1);
+    // Color attribute
+    glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, stride, (void *)(2 * sizeof(float)));
+    glEnableVertexAttribArray(1);
 
-      // Line/Point width
-      glVertexAttribPointer(2, 1, GL_FLOAT, GL_FALSE, stride, (void *)(6 * sizeof(float)));
-      glEnableVertexAttribArray(2);
+    // Line/Point width
+    glVertexAttribPointer(2, 1, GL_FLOAT, GL_FALSE, stride, (void *)(6 * sizeof(float)));
+    glEnableVertexAttribArray(2);
 
-      glUniform1fv(uxMult, 1, &monitors[i].xMultiplier);
-      glUniform1fv(uyMult, 1, &monitors[i].yMultiplier);
-      glUniform1fv(uxFactor, 1, &monitors[i].xFactor);
-      glUniform1fv(uyFactor, 1, &monitors[i].yFactor);
+    glDrawArrays(GL_POINTS, 0, numPoints);
 
-      glDrawArrays(GL_POINTS, 0, numPoints);
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
-      glBindFramebuffer(GL_FRAMEBUFFER, 0);
-
-      if(config.show_trails)
-      {
-        glEnable(GL_BLEND);
-        glBlendFunc(GL_CONSTANT_COLOR, GL_CONSTANT_ALPHA);
-        glBlendColor(1.f, 1.f, 1.f, 0.85f);
-        glBlendEquation(GL_FUNC_ADD);
-      }
-
-      glUseProgram(postprogram.program);
-
-      glBindVertexArray(quadVAO);
-
-      glBindBuffer(GL_ARRAY_BUFFER, quadVBO);
-      glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, quadEBO);
-
-      // Position attribute
-      glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float), (void *)0);
-      glEnableVertexAttribArray(0);
-
-      glBindTexture(GL_TEXTURE_2D, textures[i]);
-      glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
-      // Swap buffers and poll events
-      glfwSwapBuffers(windows[i]);
-      glDisable(GL_BLEND);
-      glBindVertexArray(0);
-      glfwPollEvents();
+    if(config.show_trails)
+    {
+      glEnable(GL_BLEND);
+      glBlendFunc(GL_CONSTANT_COLOR, GL_CONSTANT_ALPHA);
+      glBlendColor(1.f, 1.f, 1.f, 0.65f);
+      glBlendEquation(GL_FUNC_ADD);
     }
+
+    glUseProgram(postprogram.program);
+
+    glBindVertexArray(quadVAO);
+
+    glBindBuffer(GL_ARRAY_BUFFER, quadVBO);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, quadEBO);
+
+    // Position attribute
+    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float), (void *)0);
+    glEnableVertexAttribArray(0);
+
+    glBindTexture(GL_TEXTURE_2D, texture);
+    glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+    
+    // Swap buffers and poll events
+    glfwSwapBuffers(window);
+    glDisable(GL_BLEND);
+    glBindVertexArray(0);
+    glfwPollEvents();
   }
 
   // Cleanup
@@ -318,12 +298,11 @@ int main(int argc, char *argv[])
   glDeleteVertexArrays(1, &quadVAO);
   glDeleteBuffers(1, &quadVBO);
   glDeleteBuffers(1, &quadEBO);
-  glDeleteTextures(textures.size(), textures.data());
-  glDeleteFramebuffers(framebuffers.size(), framebuffers.data());
+  glDeleteTextures(1, &texture);
+  glDeleteFramebuffers(1, &framebuffer);
   glDeleteProgram(postprogram.program);
 
-  for(int i = 0; i < monitorCount; ++i)
-    glfwDestroyWindow(windows[i]);
+  glfwDestroyWindow(window);
 
   glfwTerminate();
 

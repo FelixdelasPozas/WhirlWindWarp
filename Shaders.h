@@ -26,17 +26,11 @@ layout(location = 0) in vec2 inPos;
 layout(location = 1) in vec4 inColor;
 layout(location = 2) in float inWidth;
 
-uniform float xMult;
-uniform float yMult;
-uniform float xFactor;
-uniform float yFactor;
-
 out vec4 vColor;
 
 void main()
 {
-    vec2 pos = ((inPos + vec2(1,1)) * vec2(xMult, yMult)) - vec2((xMult * xFactor) + 1, (yMult * yFactor) + 1);
-    gl_Position = vec4(pos, 0, 1);
+    gl_Position = vec4(inPos, 0, 1);
     gl_PointSize = max(1.f,inWidth);
     vColor = vec4(inColor.rgb, 1);
 }
