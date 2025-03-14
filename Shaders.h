@@ -70,4 +70,14 @@ void main()
 }
 )";
 
+const float quadVertices[] = {
+    -1.0f, 1.0f,  // Top-left
+    -1.0f, -1.0f, // Bottom-left
+    1.0f, -1.0f,  // Bottom-right
+    1.0f, 1.0f    // Top-right
+};
+
+const unsigned int quadIndices[] = {0, 1, 2,
+                                    0, 2, 3};
+
 #endif

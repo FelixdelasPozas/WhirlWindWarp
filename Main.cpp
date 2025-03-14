@@ -33,16 +33,6 @@
 // C++
 #include <iostream>
 
-const float quadVertices[] = {
-    -1.0f, 1.0f,  // Top-left
-    -1.0f, -1.0f, // Bottom-left
-    1.0f, -1.0f,  // Bottom-right
-    1.0f, 1.0f    // Top-right
-};
-
-const unsigned int quadIndices[] = {0, 1, 2,
-                                    0, 2, 3};
-
 //----------------------------------------------------------------------------
 int main(int argc, char *argv[]) 
 {
@@ -69,9 +59,7 @@ int main(int argc, char *argv[])
 
   int xMin = std::numeric_limits<int>::max(), yMin = std::numeric_limits<int>::max();
   int virtualWidth = 0, virtualHeight = 0;
-  int minPosX = std::numeric_limits<int>::max(), minPosY = std::numeric_limits<int>::max();
-  Utils::Monitors monitors(monitorCount);
-  
+
   for(int i = 0; i < monitorCount; ++i)
   {
     const auto glfwmonitor = glfwmonitors[i];
@@ -79,28 +67,12 @@ int main(int argc, char *argv[])
     glfwGetMonitorPos(glfwmonitor, &xPos, &yPos);
     const auto res = glfwGetVideoMode(glfwmonitor);
 
-    monitors[i].name = glfwGetMonitorName(glfwmonitor);
-    monitors[i].xPos = xPos;
-    monitors[i].yPos = yPos;
-    monitors[i].width = res->width;
-    monitors[i].height = res->height;
-
     xMin = std::min(xMin, xPos);
     yMin = std::min(yMin, yPos);
     virtualWidth = std::max(virtualWidth, xPos + res->width);
     virtualHeight = std::max(virtualHeight, yPos + res->height);
-    minPosX = std::min(xPos, minPosX);
-    minPosY = std::min(yPos, minPosY);
   }
 
-  // compute factors and modifiers for the points to draw in this monitor.
-  for(int i = 0; i < monitorCount; ++i)
-  {
-    monitors[i].xMultiplier = virtualWidth / monitors[i].width;
-    monitors[i].yMultiplier = virtualHeight / monitors[i].height;
-    monitors[i].xFactor = (static_cast<float>(monitors[i].xPos)  / virtualWidth) * monitors[i].xMultiplier;
-    monitors[i].yFactor = (static_cast<float>(monitors[i].yPos)  / virtualHeight) * monitors[i].yMultiplier;
-  }
   const int numPoints = (virtualWidth * virtualHeight) / 400; // one point per 1000 pixels.
 
   glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
@@ -109,11 +81,10 @@ int main(int argc, char *argv[])
   glfwWindowHint(GLFW_DECORATED, false);
   glfwWindowHint(GLFW_FLOATING, true);
   glfwWindowHint(GLFW_FOCUS_ON_SHOW, true);
-  glfwWindowHint(GLFW_POSITION_X, minPosX);
-  glfwWindowHint(GLFW_POSITION_Y, minPosY);
+  glfwWindowHint(GLFW_POSITION_X, xMin);
+  glfwWindowHint(GLFW_POSITION_Y, yMin);
     
-  const std::string name = "Monitor";
-  GLFWwindow *window = glfwCreateWindow(virtualWidth, virtualHeight, name.c_str(), nullptr, nullptr);
+  auto window = glfwCreateWindow(virtualWidth, virtualHeight, "Monitor", nullptr, nullptr);
   if (!window)
   {
     glfwTerminate();
