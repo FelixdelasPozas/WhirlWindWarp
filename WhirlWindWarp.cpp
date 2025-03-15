@@ -19,12 +19,12 @@
 
 // Project
 #include <WhirlWindWarp.h>
-#include <Utils.h>
 
 //--------------------------------------------------------------------
-WhirlWindWarp::WhirlWindWarp(const int numPoints, const bool drawTails, Utils::NumberGenerator *generator)
-: m_generator{generator}
-, m_particles{nullptr}
+WhirlWindWarp::WhirlWindWarp(const int numPoints, const Utils::Configuration &config, Utils::NumberGenerator *generator)
+: m_generator {generator}
+, m_particles {nullptr}
+, m_config    {config}
 {
   m_state.initted = false;
   m_state.numPoints = numPoints;
@@ -36,14 +36,11 @@ WhirlWindWarp::WhirlWindWarp(const int numPoints, const bool drawTails, Utils::N
 }
 
 //--------------------------------------------------------------------
-void WhirlWindWarp::advance(const float time_)
+void WhirlWindWarp::advance()
 {
-  static float lastFrameTime = 0;
-  
   preUpdateState();
 
-  m_particles->advance(time_ - lastFrameTime);
-  lastFrameTime = time_;
+  m_particles->advance();
   
   postUpdateState();
 }
@@ -136,7 +133,7 @@ void WhirlWindWarp::init()
   m_state.hue = 180 + 180 * m_generator->get();
 
   if (!m_particles)
-    m_particles = std::make_unique<Particles>(m_state, m_generator);
+    m_particles = std::make_unique<Particles>(m_state, m_generator, m_config);
 }
 
 //--------------------------------------------------------------------

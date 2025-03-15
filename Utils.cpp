@@ -37,19 +37,19 @@
 #include <memory>
 #include <vector>
 
-LPCSTR KEY_BASEKEY   = "Software\\Felix de las Pozas Alvarez\\WhirlWindWarp";
-LPCSTR KEY_LINEWIDTH = "LineWidth";
-LPCSTR KEY_ANTIALIAS = "Antialias";
-LPCSTR KEY_POINTSIZE = "PointSize";
-LPCSTR KEY_SHOWTRAIL = "ShowTrail";
+LPCSTR KEY_BASEKEY    = "Software\\Felix de las Pozas Alvarez\\WhirlWindWarp";
+LPCSTR KEY_MOTIONBLUR = "MotionBlur";
+LPCSTR KEY_ANTIALIAS  = "Antialias";
+LPCSTR KEY_POINTSIZE  = "PointSize";
+LPCSTR KEY_SHOWTRAIL  = "ShowTrail";
 
 //----------------------------------------------------------------------------
 std::ostream &Utils::operator<<(std::ostream &os, const Configuration &config)
 {
   os << "Config -----------" << std::endl
-     << "line width : " << config.line_width << '\n'
      << "point size : " << config.point_size << '\n'
      << "antialias  : " << (config.antialias ? "true" : "false") << '\n'
+     << "motion blur: " << (config.motion_blur ? "true" : "false") << '\n'
      << "show trails: " << (config.show_trails ? "true" : "false") << std::endl;
 
   return os;
@@ -71,8 +71,8 @@ void Utils::loadConfiguration(Configuration &config)
       return RegGetValueA(default_key, "", key, RRF_RT_DWORD, nullptr, &dataVal, &size);
     };
 
-    if(ERROR_SUCCESS == readRegistryValue(KEY_LINEWIDTH))
-      config.line_width = dataVal;
+    if(ERROR_SUCCESS == readRegistryValue(KEY_MOTIONBLUR))
+      config.motion_blur = dataVal;
 
     if(ERROR_SUCCESS == readRegistryValue(KEY_ANTIALIAS))
       config.antialias = (dataVal == 0);
@@ -86,7 +86,7 @@ void Utils::loadConfiguration(Configuration &config)
     RegCloseKey(default_key);
   }
   else
-    std::cerr << "loadConfiguration: unable to open main key" << std::endl;
+    std::cerr << "loadConfiguration: unable to open main key." << std::endl;
 }
 
 //----------------------------------------------------------------------------
@@ -101,10 +101,10 @@ void Utils::saveConfiguration(const Configuration &config)
       return RegSetValueExA(default_key, key, 0, REG_DWORD, (BYTE *)(&value), sizeof(DWORD));
     };
 
-    saveRegistryValue(KEY_LINEWIDTH, config.line_width);
-    saveRegistryValue(KEY_ANTIALIAS, config.antialias ? 0 : 1);
-    saveRegistryValue(KEY_POINTSIZE, config.point_size);
-    saveRegistryValue(KEY_SHOWTRAIL, config.show_trails ? 0 : 1);
+    saveRegistryValue(KEY_MOTIONBLUR, config.motion_blur ? 0 : 1);
+    saveRegistryValue(KEY_ANTIALIAS,  config.antialias ? 0 : 1);
+    saveRegistryValue(KEY_POINTSIZE,  config.point_size);
+    saveRegistryValue(KEY_SHOWTRAIL,  config.show_trails ? 0 : 1);
 
     RegCloseKey(default_key);
   }
@@ -158,7 +158,7 @@ GLint Utils::loadShader(const char *source, GLenum type)
 	glGetShaderiv(shader, GL_COMPILE_STATUS, &compiled);
 	if (!compiled)
 	{
-    const std::string shaderType = type == GL_VERTEX_SHADER ? "Vertex":"Fragment";
+    const std::string shaderType = type == GL_VERTEX_SHADER ? "Vertex": (type == GL_FRAGMENT_SHADER ? "Fragment":"Geometry");
 
 		GLint logLen = -1;
 		glGetShaderiv(shader, GL_INFO_LOG_LENGTH, &logLen);

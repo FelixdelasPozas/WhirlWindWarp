@@ -20,6 +20,7 @@
 #ifndef _SHADERS_H_
 #define _SHADERS_H_
 
+// Points shaders
 const char* vertexShaderSource = R"(
 #version 330 core
 layout(location = 0) in vec2 inPos;
@@ -32,7 +33,7 @@ void main()
 {
     gl_Position = vec4(inPos, 0, 1);
     gl_PointSize = max(1.f,inWidth);
-    vColor = vec4(inColor.rgb, 1);
+    vColor = inColor;
 }
 )";
 
@@ -46,6 +47,81 @@ void main()
 }
 )";
 
+// Lines shaders
+const char* vertexShaderSourceTrails = R"(
+#version 330 core
+layout(location = 0) in vec2 inPos;
+layout(location = 1) in vec4 inColor;
+layout(location = 2) in float inWidth;
+
+out vec4 vColor;
+out float lineWidth;
+
+void main()
+{
+    gl_Position = vec4(inPos, 0, 1);
+    vColor = inColor;
+    lineWidth = max(1.f,inWidth);
+}
+)";
+
+const char* geometryShaderSource = R"(
+#version 330 core
+
+layout (lines) in;
+layout (triangle_strip, max_vertices = 4) out;
+
+in vec4 vColor[];
+in float lineWidth[];
+
+out vec4 gColor;
+
+uniform float ratioX;
+uniform float ratioY;
+
+void main()
+{
+    float r1 = lineWidth[0];
+    float r2 = lineWidth[1];
+
+    vec4 p1 = gl_in[0].gl_Position;
+    vec4 p2 = gl_in[1].gl_Position;
+
+    vec2 dir = normalize(p2.xy - p1.xy);
+    vec2 normal = vec2(dir.y, -dir.x) * vec2(ratioX, ratioY);
+
+    vec4 offset1 = vec4(normal * r1 / 2.f, 0, 0);
+    vec4 offset2 = vec4(normal * r2 / 2.f, 0, 0);
+
+    gColor = vColor[0];
+
+    gl_Position = p1 + offset1;
+    EmitVertex();
+    gl_Position = p1 - offset1;
+    EmitVertex();
+    
+    gColor = vec4(vColor[1].rgb, 0.75f);
+
+    gl_Position = p2 + offset2;
+    EmitVertex();
+    gl_Position = p2 - offset2;
+    EmitVertex();
+    
+    EndPrimitive();
+}
+)";
+
+const char* fragmentShaderSourceTrails = R"(
+#version 330 core
+in vec4 gColor;
+
+void main()
+{
+    gl_FragColor = gColor;
+}
+)";
+
+// Post-processing shaders
 const char* ppVertexShaderSource =  R"(
 #version 330 core
 layout(location = 0) in vec2 aPos;

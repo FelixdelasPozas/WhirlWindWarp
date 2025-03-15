@@ -42,9 +42,10 @@ class Particles
     /** \brief Particle class constructor.
      * \param[in] state application state.
      * \param[in] generator random number generator.
+     * \param[in] drawTrails true to generate points for the trail and false otherwise. 
      *
      */
-    explicit Particles(State &state, Utils::NumberGenerator *generator);
+    explicit Particles(State &state, Utils::NumberGenerator *generator, const Utils::Configuration &config);
 
     /** \brief Particle class virtual destructor.
      *
@@ -56,7 +57,7 @@ class Particles
      * \param[in] timeIncrement Passed time since last frame.
      *
      */
-    void advance(const float timeIncrement);
+    void advance();
 
     /** \brief Returns the buffer pointer.
      *
@@ -76,9 +77,10 @@ class Particles
      */
     void reset(const int idx);
 
-    Utils::NumberGenerator *m_generator;  /** random number generator in [-1.1]. */
-    State                  &m_state;      /** application state.                 */
-    std::vector<float>      m_buffer;     /** data buffer.                       */
+    State                      &m_state;     /** application state.                   */
+    Utils::NumberGenerator     *m_generator; /** random number generator in [-1.1].   */
+    std::vector<float>          m_buffer;    /** data buffer.                         */
+    const Utils::Configuration &m_config;    /** application configuration reference. */
 
     /** \struct Particle
      * \brief Particle components.

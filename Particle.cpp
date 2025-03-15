@@ -30,22 +30,26 @@
 constexpr float FPS60 = 1.f/60.f;
 
 //--------------------------------------------------------------------
-Particles::Particles(State &state, Utils::NumberGenerator* generator)
-: m_generator   (generator)
-, m_state       (state)
+Particles::Particles(State &state, Utils::NumberGenerator* generator, const Utils::Configuration &config)
+: m_state    {state}
+, m_generator{generator}
+, m_config   {config}
 {
   assert(generator);
   init();
 }
 
 //--------------------------------------------------------------------
-void Particles::advance(const float timeIncrement)
+void Particles::advance()
 {
-  const float factor = timeIncrement > FPS60 ? 1.f : timeIncrement/FPS60;
+  const int multiplier = m_config.show_trails ? 2:1;
 
   for(int i = 0; i < m_state.numPoints; ++i)
   {
-    Particle *pos = reinterpret_cast<Particle*>(m_buffer.data()) + i;
+    Particle *pos = reinterpret_cast<Particle*>(m_buffer.data()) + (i * multiplier);
+
+    if(m_config.show_trails)
+      memcpy(pos+1, pos, sizeof(Particle));
 
     double x = pos->x;
     double y = pos->y;
@@ -142,9 +146,8 @@ void Particles::advance(const float timeIncrement)
       }
       else
       {
-        const auto factorInv = 1 - factor;
-        pos->x = x - ((x - pos->x) * factorInv);
-        pos->y = y - ((y - pos->y) * factorInv);
+        pos->x = x;
+        pos->y = y;
       }
     }
 
@@ -172,7 +175,8 @@ void Particles::advance(const float timeIncrement)
 //--------------------------------------------------------------------
 void Particles::init()
 {
-  m_buffer = std::vector<float>((m_state.numPoints*sizeof(Particle)),0);
+  const int multiplier = m_config.show_trails ? 2 : 1;
+  m_buffer = std::vector<float>((multiplier*m_state.numPoints*sizeof(Particle)),0);
 
   std::vector<size_t> index[m_state.numPoints];
   std::iota(index->begin(), index->end(), 0);
@@ -187,9 +191,10 @@ void Particles::init()
 //--------------------------------------------------------------------
 void Particles::reset(const int idx)
 {
-  auto pos = reinterpret_cast<Particle*>(m_buffer.data()) + idx;
+  const int multiplier = m_config.show_trails ? 2 : 1;
+  const auto pos = reinterpret_cast<Particle*>(m_buffer.data()) + (idx * multiplier);
 
-  memset(pos, 0, sizeof(Particle));
+  memset(pos, 0, multiplier * sizeof(Particle));
   pos->x = m_generator->get();
   pos->y = m_generator->get();
 
@@ -200,5 +205,8 @@ void Particles::reset(const int idx)
   pos->b = rgbColor.b;
   pos->a = 1.f;
 
-  pos->w = 1 + (m_generator->get() + 1);
+  pos->w = m_config.point_size * (m_generator->get() + 1);
+
+  if(m_config.show_trails)
+    memcpy(pos+1, pos, sizeof(Particle));
 };

@@ -21,6 +21,7 @@
 #define WHIRLWINDWARP_H_
 
 #include <Particle.h>
+#include <Utils.h>
 
 // C++
 #include <memory>
@@ -60,17 +61,17 @@ class WhirlWindWarp
   public:
     /** \brief WindWhirlWarp class constructor.
      * \param[in] numPoints total number of points.
-     * \param[in] drawTails true to draw particle trails and false otherwise.
+     * \param[in] config application configuration.
      * \param[in] generator random number generator class pointer.
      *
      */
-    explicit WhirlWindWarp(const int numPoints, const bool drawTails = false, Utils::NumberGenerator *generator = nullptr);
+    explicit WhirlWindWarp(const int numPoints, const Utils::Configuration &config, Utils::NumberGenerator *generator = nullptr);
 
     /** \brief Updates the state and calls advance() on the scene.
      * \param[in] time_ Current time.
      *
      */
-    void advance(const float time_);
+    void advance();
 
     /** \brief Returns the buffer to use in OpenGL
      *
@@ -108,9 +109,10 @@ class WhirlWindWarp
      */
     float stars_perturb(float var, float op, float damp, float force);
 
-    Utils::NumberGenerator    *m_generator; /** random number generator in [-1,1]. */
-    struct State               m_state;     /** application state.                 */
-    std::unique_ptr<Particles> m_particles; /** particles */
+    Utils::NumberGenerator     *m_generator; /** random number generator in [-1,1]. */
+    struct State                m_state;     /** application state.                 */
+    std::unique_ptr<Particles>  m_particles; /** particles                          */
+    const Utils::Configuration &m_config;    /** application configuration.         */
 };
 
 #endif // WHIRLWINDWARP_H_

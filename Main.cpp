@@ -40,7 +40,6 @@ int main(int argc, char *argv[])
   
   Utils::Configuration config;
   Utils::loadConfiguration(config);
-  config.show_trails = false;
 
   glfwSetErrorCallback(Utils::errorCallback);
 
@@ -73,7 +72,7 @@ int main(int argc, char *argv[])
     virtualHeight = std::max(virtualHeight, yPos + res->height);
   }
 
-  const int numPoints = (virtualWidth * virtualHeight) / 400; // one point per 1000 pixels.
+  const int numPoints = (virtualWidth * virtualHeight) / 400; // one point per 400 pixels.
 
   glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
   glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 0);
@@ -111,35 +110,46 @@ int main(int argc, char *argv[])
   std::cout << "Version: " << glGetString(GL_VERSION) << '\n';
   std::cout << "Shading language version: " << glGetString(GL_SHADING_LANGUAGE_VERSION) << std::endl;
 
-  WhirlWindWarp www(numPoints);
+  WhirlWindWarp www(numPoints, config);
   auto vertices = www.buffer();
 
   glfwMakeContextCurrent(window);
 
-  Utils::GL_program program("default");
-  program.vert = Utils::loadShader(vertexShaderSource, GL_VERTEX_SHADER);
-  program.frag = Utils::loadShader(fragmentShaderSource, GL_FRAGMENT_SHADER);
+  Utils::GL_program points("default");
+  points.vert = Utils::loadShader(vertexShaderSource, GL_VERTEX_SHADER);
+  points.frag = Utils::loadShader(fragmentShaderSource, GL_FRAGMENT_SHADER);
 
-  Utils::initProgram(program);
+  Utils::initProgram(points);
 
-  Utils::GL_program postprogram("post-processing");
-  postprogram.vert = Utils::loadShader(ppVertexShaderSource, GL_VERTEX_SHADER);
-  postprogram.frag = Utils::loadShader(ppFragmentShaderSource, GL_FRAGMENT_SHADER);
+  Utils::GL_program trails("trails");
+  trails.vert = Utils::loadShader(vertexShaderSourceTrails, GL_VERTEX_SHADER);
+  trails.geom = Utils::loadShader(geometryShaderSource, GL_GEOMETRY_SHADER);
+  trails.frag = Utils::loadShader(fragmentShaderSourceTrails, GL_FRAGMENT_SHADER);
 
-  Utils::initProgram(postprogram);
+  Utils::initProgram(trails);
+
+  auto uratioX = glGetUniformLocation(trails.program, "ratioX");
+  auto uratioY = glGetUniformLocation(trails.program, "ratioY");
+
+  Utils::GL_program post("post-processing");
+  post.vert = Utils::loadShader(ppVertexShaderSource, GL_VERTEX_SHADER);
+  post.frag = Utils::loadShader(ppFragmentShaderSource, GL_FRAGMENT_SHADER);
+
+  Utils::initProgram(post);
 
   // Create VAO and VBO
   GLuint VAO, VBO;
   glGenVertexArrays(1, &VAO);
   glGenBuffers(1, &VBO);
 
-  glBindVertexArray(VAO);
-  glBindBuffer(GL_ARRAY_BUFFER, VBO);
-  glBufferData(GL_ARRAY_BUFFER, numPoints * 7, vertices, GL_DYNAMIC_DRAW);
-
+  const auto multiplier = config.show_trails ? 2:1;
   const GLsizei stride = 7 * sizeof(float);
 
-  // Position and color attributes for endpoint 1
+  glBindVertexArray(VAO);
+  glBindBuffer(GL_ARRAY_BUFFER, VBO);
+  glBufferData(GL_ARRAY_BUFFER, multiplier * numPoints * stride, vertices, GL_DYNAMIC_DRAW);
+
+  // Position attribute
   glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, stride, (void *)0);
   glEnableVertexAttribArray(0);
 
@@ -178,7 +188,8 @@ int main(int argc, char *argv[])
   glGenTextures(1, &texture);
   glBindTexture(GL_TEXTURE_2D, texture);
 
-  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, virtualWidth, virtualHeight, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
+  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, virtualWidth, virtualHeight, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
+  glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE);
 
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
@@ -191,72 +202,99 @@ int main(int argc, char *argv[])
     Utils::errorCallback(EXIT_FAILURE, "Framebuffer not complete!");
   }
 
-  // Render loop
-  bool finished = false;
-  while (!finished)
-  {
-    www.advance(glfwGetTime());
+  // openg coords are {-1,1} get ratio coords/pixels
+  const float ratioX = 2.f / virtualWidth;
+  const float ratioY = 2.f / virtualHeight;
 
-    finished |= glfwWindowShouldClose(window);
-    glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);    
+  glDisable(GL_CULL_FACE);
+  glDisable(GL_DEPTH_TEST);
+  glEnable(GL_PROGRAM_POINT_SIZE);  
+
+  // Render loop
+  while (!glfwWindowShouldClose(window))
+  {
+    www.advance();
+
+    glBindFramebuffer(GL_FRAMEBUFFER, (config.motion_blur ? framebuffer : 0));    
     glClearColor(0,0,0,1);
     glClear(GL_COLOR_BUFFER_BIT);
-
-    glDisable(GL_CULL_FACE);
-    glDisable(GL_DEPTH_TEST);
 
     if(config.antialias)
       glEnable(GL_MULTISAMPLE);
 
-    glEnable(GL_PROGRAM_POINT_SIZE);
+    if(config.show_trails)
+    {
+      glUseProgram(trails.program);  
+
+      glBindVertexArray(VAO);
+      glBindBuffer(GL_ARRAY_BUFFER, VBO);
+      glBufferData(GL_ARRAY_BUFFER, multiplier * numPoints * 7, vertices, GL_DYNAMIC_DRAW);
+
+      // Position attribute
+      glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, stride, (void *)0);
+      glEnableVertexAttribArray(0);
+
+      // Color attribute
+      glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, stride, (void *)(2 * sizeof(float)));
+      glEnableVertexAttribArray(1);
+
+      // Line/Point width
+      glVertexAttribPointer(2, 1, GL_FLOAT, GL_FALSE, stride, (void *)(6 * sizeof(float)));
+      glEnableVertexAttribArray(2);
+
+      glUniform1fv(uratioX, 1, &ratioX);
+      glUniform1fv(uratioY, 1, &ratioY);
+
+      glDrawArrays(GL_LINES, 0, numPoints * multiplier);
+    }
       
-    glUseProgram(program.program);
+    glUseProgram(points.program);
 
     glBindVertexArray(VAO);
     glBindBuffer(GL_ARRAY_BUFFER, VBO);
-    glBufferData(GL_ARRAY_BUFFER, numPoints * 7, vertices, GL_DYNAMIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, multiplier * numPoints * 7, vertices, GL_DYNAMIC_DRAW);
 
     // Position attribute
-    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, stride, (void *)0);
+    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, stride * multiplier, (void *)0);
     glEnableVertexAttribArray(0);
 
     // Color attribute
-    glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, stride, (void *)(2 * sizeof(float)));
+    glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, stride * multiplier, (void *)(2 * sizeof(float)));
     glEnableVertexAttribArray(1);
 
     // Line/Point width
-    glVertexAttribPointer(2, 1, GL_FLOAT, GL_FALSE, stride, (void *)(6 * sizeof(float)));
+    glVertexAttribPointer(2, 1, GL_FLOAT, GL_FALSE, stride * multiplier, (void *)(6 * sizeof(float)));
     glEnableVertexAttribArray(2);
 
     glDrawArrays(GL_POINTS, 0, numPoints);
 
-    glBindFramebuffer(GL_FRAMEBUFFER, 0);
-
-    if(config.show_trails)
+    if(config.motion_blur)
     {
+      glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
       glEnable(GL_BLEND);
       glBlendFunc(GL_CONSTANT_COLOR, GL_CONSTANT_ALPHA);
-      glBlendColor(1.f, 1.f, 1.f, 0.65f);
+      glBlendColor(1.f, 1.f, 1.f, 0.75f);
       glBlendEquation(GL_FUNC_ADD);
+
+      glUseProgram(post.program);
+
+      glBindVertexArray(quadVAO);
+
+      glBindBuffer(GL_ARRAY_BUFFER, quadVBO);
+      glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, quadEBO);
+
+      // Position attribute
+      glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float), (void *)0);
+      glEnableVertexAttribArray(0);
+
+      glBindTexture(GL_TEXTURE_2D, texture);
+      glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+      glDisable(GL_BLEND);
     }
-
-    glUseProgram(postprogram.program);
-
-    glBindVertexArray(quadVAO);
-
-    glBindBuffer(GL_ARRAY_BUFFER, quadVBO);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, quadEBO);
-
-    // Position attribute
-    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float), (void *)0);
-    glEnableVertexAttribArray(0);
-
-    glBindTexture(GL_TEXTURE_2D, texture);
-    glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
     
     // Swap buffers and poll events
     glfwSwapBuffers(window);
-    glDisable(GL_BLEND);
     glBindVertexArray(0);
     glfwPollEvents();
   }
@@ -264,14 +302,14 @@ int main(int argc, char *argv[])
   // Cleanup
   glDeleteVertexArrays(1, &VAO);
   glDeleteBuffers(1, &VBO);
-  glDeleteProgram(program.program);
+  glDeleteProgram(points.program);
 
   glDeleteVertexArrays(1, &quadVAO);
   glDeleteBuffers(1, &quadVBO);
   glDeleteBuffers(1, &quadEBO);
   glDeleteTextures(1, &texture);
   glDeleteFramebuffers(1, &framebuffer);
-  glDeleteProgram(postprogram.program);
+  glDeleteProgram(post.program);
 
   glfwDestroyWindow(window);
 
