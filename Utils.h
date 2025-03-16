@@ -127,15 +127,16 @@ namespace Utils
    */
   struct Configuration
   {
-    int point_size;   /** point size.                                           */
-    bool antialias;   /** true if antialias enabled and false otherwise.        */
-    bool show_trails; /** true to show the particle trails and false otherwise. */
-    bool motion_blur; /** true to use motion blur and false otherwise.          */
+    int point_size;              /** point size.                                           */
+    bool antialias;              /** true if antialias enabled and false otherwise.        */
+    bool show_trails;            /** true to show the particle trails and false otherwise. */
+    bool motion_blur;            /** true to use motion blur and false otherwise.          */
+    unsigned int pixelsPerPoint; /** pixels per point computation.                         */
 
     /** \brief Configuration constructor. 
      *
      */
-    Configuration(): point_size{2}, antialias{true}, show_trails{true}, motion_blur{false} {};
+    Configuration(): point_size{2}, antialias{true}, show_trails{true}, motion_blur{false}, pixelsPerPoint{1000} {};
   };
 
   /** \brief Dump Configuration information, for debugging purposes.

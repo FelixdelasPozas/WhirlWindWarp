@@ -63,8 +63,6 @@ void Particles::advance()
     // These ones must go first, to avoid x+1.0 < 0
     if (m_state.enabled[6])
     {
-      // x = mysgn(x) * pow(fabs(x),var[6]);
-      // y = mysgn(y) * pow(fabs(y),var[6]);
       x = -1.0 + 2.0 * std::pow((x + 1.0) / 2.0, m_state.var[6]);
     }
 

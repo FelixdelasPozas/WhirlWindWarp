@@ -37,11 +37,12 @@
 #include <memory>
 #include <vector>
 
-LPCSTR KEY_BASEKEY    = "Software\\Felix de las Pozas Alvarez\\WhirlWindWarp";
-LPCSTR KEY_MOTIONBLUR = "MotionBlur";
-LPCSTR KEY_ANTIALIAS  = "Antialias";
-LPCSTR KEY_POINTSIZE  = "PointSize";
-LPCSTR KEY_SHOWTRAIL  = "ShowTrail";
+LPCSTR KEY_BASEKEY        = "Software\\Felix de las Pozas Alvarez\\WhirlWindWarp";
+LPCSTR KEY_MOTIONBLUR     = "MotionBlur";
+LPCSTR KEY_ANTIALIAS      = "Antialias";
+LPCSTR KEY_POINTSIZE      = "PointSize";
+LPCSTR KEY_SHOWTRAIL      = "ShowTrail";
+LPCSTR KEY_PIXELSPERPOINT = "PixelsPerPoint";
 
 //----------------------------------------------------------------------------
 std::ostream &Utils::operator<<(std::ostream &os, const Configuration &config)
@@ -72,7 +73,7 @@ void Utils::loadConfiguration(Configuration &config)
     };
 
     if(ERROR_SUCCESS == readRegistryValue(KEY_MOTIONBLUR))
-      config.motion_blur = dataVal;
+      config.motion_blur = (dataVal == 0);
 
     if(ERROR_SUCCESS == readRegistryValue(KEY_ANTIALIAS))
       config.antialias = (dataVal == 0);
@@ -82,6 +83,9 @@ void Utils::loadConfiguration(Configuration &config)
 
     if(ERROR_SUCCESS == readRegistryValue(KEY_SHOWTRAIL))
       config.show_trails = (dataVal == 0);
+
+    if(ERROR_SUCCESS == readRegistryValue(KEY_PIXELSPERPOINT))
+      config.show_trails = dataVal;
 
     RegCloseKey(default_key);
   }
@@ -101,10 +105,11 @@ void Utils::saveConfiguration(const Configuration &config)
       return RegSetValueExA(default_key, key, 0, REG_DWORD, (BYTE *)(&value), sizeof(DWORD));
     };
 
-    saveRegistryValue(KEY_MOTIONBLUR, config.motion_blur ? 0 : 1);
-    saveRegistryValue(KEY_ANTIALIAS,  config.antialias ? 0 : 1);
-    saveRegistryValue(KEY_POINTSIZE,  config.point_size);
-    saveRegistryValue(KEY_SHOWTRAIL,  config.show_trails ? 0 : 1);
+    saveRegistryValue(KEY_MOTIONBLUR,     config.motion_blur ? 0 : 1);
+    saveRegistryValue(KEY_ANTIALIAS,      config.antialias ? 0 : 1);
+    saveRegistryValue(KEY_POINTSIZE,      config.point_size);
+    saveRegistryValue(KEY_SHOWTRAIL,      config.show_trails ? 0 : 1);
+    saveRegistryValue(KEY_PIXELSPERPOINT, config.pixelsPerPoint);
 
     RegCloseKey(default_key);
   }

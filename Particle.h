@@ -32,6 +32,21 @@ namespace Utils
   class NumberGenerator;
 }
 
+/** \struct Particle
+ * \brief Particle components.
+ *
+ */
+struct __attribute__((__packed__)) Particle
+{
+  float x; /** x posision.          */
+  float y; /** y position.          */
+  float r; /** red component.       */
+  float g; /** green component.     */
+  float b; /** blue component.      */
+  float a; /** alpha component.     */
+  float w; /** particle/trail width */
+};
+
 /** \class Particle
  * \brief Implements a particle in the QGraphicsView
  *
@@ -81,21 +96,6 @@ class Particles
     Utils::NumberGenerator     *m_generator; /** random number generator in [-1.1].   */
     std::vector<float>          m_buffer;    /** data buffer.                         */
     const Utils::Configuration &m_config;    /** application configuration reference. */
-
-    /** \struct Particle
-     * \brief Particle components.
-     *
-     */
-    struct __attribute__((__packed__)) Particle
-    {
-      float x; /** x posision.          */
-      float y; /** y position.          */
-      float r; /** red component.       */
-      float g; /** green component.     */
-      float b; /** blue component.      */
-      float a; /** alpha component.     */
-      float w; /** particle/trail width */
-    };
 };
 
 #endif // PARTICLE_H_

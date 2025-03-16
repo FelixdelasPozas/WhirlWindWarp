@@ -22,13 +22,15 @@
 #include <version.h>
 #include <Utils.h>
 #include <Shaders.h>
+#include <Particle.h>
 
 // GLFW
-//#include <GL/glew.h>
 #include <GL/gl.h>
 #include <GL/glext.h>
 #include <external/gl_loader.h>
+#define GLFW_EXPOSE_NATIVE_WIN32
 #include <GLFW/glfw3.h>
+#include <GLFW/glfw3native.h>
 
 // C++
 #include <iostream>
@@ -72,7 +74,7 @@ int main(int argc, char *argv[])
     virtualHeight = std::max(virtualHeight, yPos + res->height);
   }
 
-  const int numPoints = (virtualWidth * virtualHeight) / 400; // one point per 400 pixels.
+  const int numPoints = (virtualWidth * virtualHeight) / config.pixelsPerPoint;
 
   glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
   glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 0);
@@ -143,7 +145,7 @@ int main(int argc, char *argv[])
   glGenBuffers(1, &VBO);
 
   const auto multiplier = config.show_trails ? 2:1;
-  const GLsizei stride = 7 * sizeof(float);
+  const GLsizei stride = sizeof(Particle);
 
   glBindVertexArray(VAO);
   glBindBuffer(GL_ARRAY_BUFFER, VBO);
@@ -228,7 +230,7 @@ int main(int argc, char *argv[])
 
       glBindVertexArray(VAO);
       glBindBuffer(GL_ARRAY_BUFFER, VBO);
-      glBufferData(GL_ARRAY_BUFFER, multiplier * numPoints * 7, vertices, GL_DYNAMIC_DRAW);
+      glBufferData(GL_ARRAY_BUFFER, multiplier * numPoints * stride, vertices, GL_DYNAMIC_DRAW);
 
       // Position attribute
       glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, stride, (void *)0);
@@ -252,7 +254,7 @@ int main(int argc, char *argv[])
 
     glBindVertexArray(VAO);
     glBindBuffer(GL_ARRAY_BUFFER, VBO);
-    glBufferData(GL_ARRAY_BUFFER, multiplier * numPoints * 7, vertices, GL_DYNAMIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, multiplier * numPoints * stride, vertices, GL_DYNAMIC_DRAW);
 
     // Position attribute
     glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, stride * multiplier, (void *)0);
@@ -303,6 +305,7 @@ int main(int argc, char *argv[])
   glDeleteVertexArrays(1, &VAO);
   glDeleteBuffers(1, &VBO);
   glDeleteProgram(points.program);
+  glDeleteProgram(trails.program);
 
   glDeleteVertexArrays(1, &quadVAO);
   glDeleteBuffers(1, &quadVBO);
