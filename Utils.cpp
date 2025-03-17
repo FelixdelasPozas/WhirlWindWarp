@@ -230,7 +230,7 @@ void Utils::saveScreenshotToFile(const std::string &filename, int windowWidth, i
   glReadPixels(0, 0, windowWidth, windowHeight, GL_BGR_EXT, GL_UNSIGNED_BYTE, pixels->data());
 
   std::ofstream outputFile(filename.c_str(), std::ofstream::out);
-  short header[] = {0, 2, 0, 0, 0, 0, (short)windowWidth, (short)windowHeight, 24};
+  short header[] = {0, 2, 0, 0, 0, 0, static_cast<short int>(windowWidth), static_cast<short int>(windowHeight), 24};
   outputFile.write(reinterpret_cast<const char *>(header), sizeof(header));
   outputFile.write(reinterpret_cast<const char *>(pixels->data()), numberOfPixels);
   outputFile.close();

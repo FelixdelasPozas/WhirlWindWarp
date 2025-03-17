@@ -87,8 +87,9 @@ void main()
     vec4 p1 = gl_in[0].gl_Position;
     vec4 p2 = gl_in[1].gl_Position;
 
-    vec2 dir = normalize(p2.xy - p1.xy);
-    vec2 normal = vec2(dir.y, -dir.x) * vec2(ratioX, ratioY);
+    vec2 dir = p2.xy - p1.xy;
+    vec2 ndir = normalize(p2.xy - p1.xy);
+    vec2 normal = vec2(ndir.y, -ndir.x) * vec2(ratioX, ratioY);
 
     vec4 offset1 = vec4(normal * r1 / 2.f, 0, 0);
     vec4 offset2 = vec4(normal * r2 / 2.f, 0, 0);
@@ -100,11 +101,11 @@ void main()
     gl_Position = p1 - offset1;
     EmitVertex();
     
-    gColor = vec4(vColor[1].rgb, 0.75f);
+    gColor = vColor[1] * 0.75;
 
-    gl_Position = p2 + offset2;
+    gl_Position = p2 + offset2 + (0.87f * vec4(dir, 0, 0));
     EmitVertex();
-    gl_Position = p2 - offset2;
+    gl_Position = p2 - offset2 + (0.87f * vec4(dir, 0, 0));
     EmitVertex();
     
     EndPrimitive();

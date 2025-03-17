@@ -204,7 +204,7 @@ int main(int argc, char *argv[])
     Utils::errorCallback(EXIT_FAILURE, "Framebuffer not complete!");
   }
 
-  // openg coords are {-1,1} get ratio coords/pixels
+  // openg coords are {-1,1} get ratio coords/pixels to pass it as uniforms in the line shaders.
   const float ratioX = 2.f / virtualWidth;
   const float ratioY = 2.f / virtualHeight;
 

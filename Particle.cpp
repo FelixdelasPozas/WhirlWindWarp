@@ -203,7 +203,7 @@ void Particles::reset(const int idx)
   pos->b = rgbColor.b;
   pos->a = 1.f;
 
-  pos->w = m_config.point_size * (m_generator->get() + 1);
+  pos->w = m_config.point_size + (m_generator->get() + 1);
 
   if(m_config.show_trails)
     memcpy(pos+1, pos, sizeof(Particle));
