@@ -9,8 +9,8 @@ set (WHIRLWINDWARP_VERSION_PATCH 0)
 
 # Find includes in corresponding build directories
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
-#set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -static -Wall -Wno-deprecated -std=c++17 -mconsole -m64")
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -static -Wall -Wno-deprecated -std=c++17 -mwindows -m64")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -static -Wall -Wno-deprecated -std=c++17 -mconsole -m64")
+#set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -static -Wall -Wno-deprecated -std=c++17 -mwindows -m64")
 set(CMAKE_INCLUDE_SYSTEM_FLAG_CXX "-I system") # fixes #include_next errors.
 
 find_package(glfw3 REQUIRED)
@@ -48,8 +48,9 @@ set(CORE_EXTERNAL_LIBS
   glfw3
   opengl32
   TBB::tbb
+  scrnsave.a
 )
   
 add_executable(WhirlWindWarp ${CORE_SOURCES})
 target_link_libraries (WhirlWindWarp ${CORE_EXTERNAL_LIBS})
-#set_target_properties(WhirlWindWarp PROPERTIES OUTPUT_NAME WhirlWindWarp SUFFIX ".scr")
+set_target_properties(WhirlWindWarp PROPERTIES OUTPUT_NAME WhirlWindWarp SUFFIX ".scr")

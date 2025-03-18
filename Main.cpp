@@ -34,188 +34,214 @@
 
 // C++
 #include <iostream>
+#include <scrnsave.h>
 
-//----------------------------------------------------------------------------
-int main(int argc, char *argv[]) 
+#define ID_TIMER 100
+
+LRESULT WINAPI ScreenSaverProc(HWND hWnd, UINT msg, WPARAM wp, LPARAM lp)
 {
-  // TODO: read arguments. 
-  
-  Utils::Configuration config;
-  Utils::loadConfiguration(config);
+  static bool inited = false;
+  static int virtualWidth = 0;
+  static int virtualHeight = 0;
+  static Utils::Configuration config;
+  static int numPoints = 0;
+  static WhirlWindWarp *www = nullptr;
+  static const float *vertices = nullptr;
+  static GLFWwindow *window = nullptr;
+  static Utils::GL_program points = Utils::GL_program("default");
+  static Utils::GL_program trails = Utils::GL_program("trails");
+  static Utils::GL_program post = Utils::GL_program("post-processing");
+  static GLint uratioX = 0;
+  static GLint uratioY = 0;
+  static float ratioX = 0;
+  static float ratioY = 0;
+  static const GLsizei stride = sizeof(Particle);
+  static int multiplier = 0;
+  static GLuint VAO, VBO;
+  static GLuint quadVAO, quadVBO, quadEBO;
+  static GLuint framebuffer;
+  static GLuint texture;
 
-  glfwSetErrorCallback(Utils::errorCallback);
-
-  if (!glfwInit())
+  if(!inited)
   {
-    Utils::errorCallback(EXIT_FAILURE, "Failed to initialize GLFW");
+    Utils::loadConfiguration(config);
+
+    glfwSetErrorCallback(Utils::errorCallback);
+
+    if (!glfwInit())
+    {
+      Utils::errorCallback(EXIT_FAILURE, "Failed to initialize GLFW");
+    }
+
+    int monitorCount = 0;
+    const auto glfwmonitors = glfwGetMonitors(&monitorCount);
+    if(!glfwmonitors)
+    {
+      glfwTerminate();
+      Utils::errorCallback(EXIT_FAILURE, "No monitors detected");
+    }
+
+    int xMin = std::numeric_limits<int>::max(), yMin = std::numeric_limits<int>::max();
+
+    for(int i = 0; i < monitorCount; ++i)
+    {
+      const auto glfwmonitor = glfwmonitors[i];
+      int xPos, yPos;
+      glfwGetMonitorPos(glfwmonitor, &xPos, &yPos);
+      const auto res = glfwGetVideoMode(glfwmonitor);
+
+      xMin = std::min(xMin, xPos);
+      yMin = std::min(yMin, yPos);
+      virtualWidth = std::max(virtualWidth, xPos + res->width);
+      virtualHeight = std::max(virtualHeight, yPos + res->height);
+    }
+
+    numPoints = (virtualWidth * virtualHeight) / config.pixelsPerPoint;
+
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 0);
+    glfwWindowHint(GLFW_SAMPLES, config.antialias ? 4 : 1);
+    glfwWindowHint(GLFW_DECORATED, false);
+    glfwWindowHint(GLFW_FLOATING, true);
+    glfwWindowHint(GLFW_FOCUS_ON_SHOW, true);
+    glfwWindowHint(GLFW_POSITION_X, xMin);
+    glfwWindowHint(GLFW_POSITION_Y, yMin);
+
+    www = new WhirlWindWarp(numPoints, config);
+    vertices = www->buffer();
+
+    inited = true;
   }
 
-  int monitorCount = 0;
-  const auto glfwmonitors = glfwGetMonitors(&monitorCount);
-  if(!glfwmonitors)
+	switch(msg) 
   {
-    glfwTerminate();
-    Utils::errorCallback(EXIT_FAILURE, "No monitors detected");
-  }
-
-  int xMin = std::numeric_limits<int>::max(), yMin = std::numeric_limits<int>::max();
-  int virtualWidth = 0, virtualHeight = 0;
-
-  for(int i = 0; i < monitorCount; ++i)
-  {
-    const auto glfwmonitor = glfwmonitors[i];
-    int xPos, yPos;
-    glfwGetMonitorPos(glfwmonitor, &xPos, &yPos);
-    const auto res = glfwGetVideoMode(glfwmonitor);
-
-    xMin = std::min(xMin, xPos);
-    yMin = std::min(yMin, yPos);
-    virtualWidth = std::max(virtualWidth, xPos + res->width);
-    virtualHeight = std::max(virtualHeight, yPos + res->height);
-  }
-
-  const int numPoints = (virtualWidth * virtualHeight) / config.pixelsPerPoint;
-
-  glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
-  glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 0);
-  glfwWindowHint(GLFW_SAMPLES, config.antialias ? 4 : 1);
-  glfwWindowHint(GLFW_DECORATED, false);
-  glfwWindowHint(GLFW_FLOATING, true);
-  glfwWindowHint(GLFW_FOCUS_ON_SHOW, true);
-  glfwWindowHint(GLFW_POSITION_X, xMin);
-  glfwWindowHint(GLFW_POSITION_Y, yMin);
+	case WM_CREATE:
     
-  auto window = glfwCreateWindow(virtualWidth, virtualHeight, "Monitor", nullptr, nullptr);
-  if (!window)
-  {
-    glfwTerminate();
-    const std::string msg = std::string("Failed to create GLFW window for monitor");
-    Utils::errorCallback(EXIT_FAILURE, msg.c_str());
-  }
+    window = glfwCreateWindow(virtualWidth, virtualHeight, "Monitor", nullptr, nullptr);
+    if (!window)
+    {
+      glfwTerminate();
+      const std::string msg = std::string("Failed to create GLFW window for monitor");
+      Utils::errorCallback(EXIT_FAILURE, msg.c_str());
+    }
 
-  glfwMakeContextCurrent(window);
-  glfwSetKeyCallback(window, Utils::glfwKeyCallback);
-  glfwSetCursorPosCallback(window, Utils::glfwMousePosCallback);
-  glfwSetMouseButtonCallback(window, Utils::glfwMouseButtonCallback);
-  glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
-  glfwSetInputMode(window, GLFW_RAW_MOUSE_MOTION, GLFW_TRUE);
-  glfwSwapInterval(1);
+    glfwMakeContextCurrent(window);
+    glfwSetKeyCallback(window, Utils::glfwKeyCallback);
+    glfwSetCursorPosCallback(window, Utils::glfwMousePosCallback);
+    glfwSetMouseButtonCallback(window, Utils::glfwMouseButtonCallback);
+    glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+    glfwSetInputMode(window, GLFW_RAW_MOUSE_MOTION, GLFW_TRUE);
+    glfwSwapInterval(1);
 
-  if(load_gl_functions() > 0)
-  {
-    glfwTerminate();
-    Utils::errorCallback(EXIT_FAILURE, "Failed to load OpenGL functions");
-  }
+    if(load_gl_functions() > 0)
+    {
+      glfwTerminate();
+      Utils::errorCallback(EXIT_FAILURE, "Failed to load OpenGL functions");
+    }
 
-  std::cout << "GL Vendor: " << glGetString(GL_VENDOR) << '\n';
-  std::cout << "Renderer: " << glGetString(GL_RENDERER) << '\n';
-  std::cout << "Version: " << glGetString(GL_VERSION) << '\n';
-  std::cout << "Shading language version: " << glGetString(GL_SHADING_LANGUAGE_VERSION) << std::endl;
+    // std::cout << "GL Vendor: " << glGetString(GL_VENDOR) << '\n';
+    // std::cout << "Renderer: " << glGetString(GL_RENDERER) << '\n';
+    // std::cout << "Version: " << glGetString(GL_VERSION) << '\n';
+    // std::cout << "Shading language version: " << glGetString(GL_SHADING_LANGUAGE_VERSION) << std::endl;
 
-  WhirlWindWarp www(numPoints, config);
-  auto vertices = www.buffer();
+    glfwMakeContextCurrent(window);
 
-  glfwMakeContextCurrent(window);
+    points.vert = Utils::loadShader(vertexShaderSource, GL_VERTEX_SHADER);
+    points.frag = Utils::loadShader(fragmentShaderSource, GL_FRAGMENT_SHADER);
 
-  Utils::GL_program points("default");
-  points.vert = Utils::loadShader(vertexShaderSource, GL_VERTEX_SHADER);
-  points.frag = Utils::loadShader(fragmentShaderSource, GL_FRAGMENT_SHADER);
+    Utils::initProgram(points);
 
-  Utils::initProgram(points);
+    trails.vert = Utils::loadShader(vertexShaderSourceTrails, GL_VERTEX_SHADER);
+    trails.geom = Utils::loadShader(geometryShaderSource, GL_GEOMETRY_SHADER);
+    trails.frag = Utils::loadShader(fragmentShaderSourceTrails, GL_FRAGMENT_SHADER);
 
-  Utils::GL_program trails("trails");
-  trails.vert = Utils::loadShader(vertexShaderSourceTrails, GL_VERTEX_SHADER);
-  trails.geom = Utils::loadShader(geometryShaderSource, GL_GEOMETRY_SHADER);
-  trails.frag = Utils::loadShader(fragmentShaderSourceTrails, GL_FRAGMENT_SHADER);
+    Utils::initProgram(trails);
 
-  Utils::initProgram(trails);
+    uratioX = glGetUniformLocation(trails.program, "ratioX");
+    uratioY = glGetUniformLocation(trails.program, "ratioY");
 
-  auto uratioX = glGetUniformLocation(trails.program, "ratioX");
-  auto uratioY = glGetUniformLocation(trails.program, "ratioY");
+    post.vert = Utils::loadShader(ppVertexShaderSource, GL_VERTEX_SHADER);
+    post.frag = Utils::loadShader(ppFragmentShaderSource, GL_FRAGMENT_SHADER);
 
-  Utils::GL_program post("post-processing");
-  post.vert = Utils::loadShader(ppVertexShaderSource, GL_VERTEX_SHADER);
-  post.frag = Utils::loadShader(ppFragmentShaderSource, GL_FRAGMENT_SHADER);
+    Utils::initProgram(post);
 
-  Utils::initProgram(post);
+    // Create VAO and VBO
+    glGenVertexArrays(1, &VAO);
+    glGenBuffers(1, &VBO);
 
-  // Create VAO and VBO
-  GLuint VAO, VBO;
-  glGenVertexArrays(1, &VAO);
-  glGenBuffers(1, &VBO);
+    multiplier = config.show_trails ? 2:1;
 
-  const auto multiplier = config.show_trails ? 2:1;
-  const GLsizei stride = sizeof(Particle);
+    glBindVertexArray(VAO);
+    glBindBuffer(GL_ARRAY_BUFFER, VBO);
+    glBufferData(GL_ARRAY_BUFFER, multiplier * numPoints * stride, vertices, GL_DYNAMIC_DRAW);
 
-  glBindVertexArray(VAO);
-  glBindBuffer(GL_ARRAY_BUFFER, VBO);
-  glBufferData(GL_ARRAY_BUFFER, multiplier * numPoints * stride, vertices, GL_DYNAMIC_DRAW);
+    // Position attribute
+    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, stride, (void *)0);
+    glEnableVertexAttribArray(0);
 
-  // Position attribute
-  glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, stride, (void *)0);
-  glEnableVertexAttribArray(0);
+    // Color attribute
+    glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, stride, (void *)(2 * sizeof(float)));
+    glEnableVertexAttribArray(1);
 
-  // Color attribute
-  glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, stride, (void *)(2 * sizeof(float)));
-  glEnableVertexAttribArray(1);
+    // Line/Point width
+    glVertexAttribPointer(2, 1, GL_FLOAT, GL_FALSE, stride, (void *)(6 * sizeof(float)));
+    glEnableVertexAttribArray(2);
 
-  // Line/Point width
-  glVertexAttribPointer(2, 1, GL_FLOAT, GL_FALSE, stride, (void *)(6 * sizeof(float)));
-  glEnableVertexAttribArray(2);
+    // Create VAO and VBOs for post-processing quad
+    glGenVertexArrays(1, &quadVAO);
+    glGenBuffers(1, &quadVBO);
+    glGenBuffers(1, &quadEBO);
 
-  // Create VAO and VBOs for post-processing quad
-  GLuint quadVAO, quadVBO, quadEBO;
-  glGenVertexArrays(1, &quadVAO);
-  glGenBuffers(1, &quadVBO);
-  glGenBuffers(1, &quadEBO);
+    glBindVertexArray(quadVAO);
 
-  glBindVertexArray(quadVAO);
+    glBindBuffer(GL_ARRAY_BUFFER, quadVBO);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(quadVertices), quadVertices, GL_STATIC_DRAW);
 
-  glBindBuffer(GL_ARRAY_BUFFER, quadVBO);
-  glBufferData(GL_ARRAY_BUFFER, sizeof(quadVertices), quadVertices, GL_STATIC_DRAW);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, quadEBO);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(quadIndices), quadIndices, GL_STATIC_DRAW);
 
-  glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, quadEBO);
-  glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(quadIndices), quadIndices, GL_STATIC_DRAW);
+    // Position attribute
+    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float), (void *)0);
+    glEnableVertexAttribArray(0);
 
-  // Position attribute
-  glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float), (void *)0);
-  glEnableVertexAttribArray(0);
+    // Setup framebuffer and texture to accumulate colors
+    glGenFramebuffers(1, &framebuffer);
+    glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);
 
-  // Setup framebuffer and texture to accumulate colors
-  GLuint framebuffer;
-  glGenFramebuffers(1, &framebuffer);
-  glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);
+    glGenTextures(1, &texture);
+    glBindTexture(GL_TEXTURE_2D, texture);
 
-  GLuint texture;
-  glGenTextures(1, &texture);
-  glBindTexture(GL_TEXTURE_2D, texture);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, virtualWidth, virtualHeight, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
+    glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE);
 
-  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, virtualWidth, virtualHeight, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
-  glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, texture, 0);
 
-  glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, texture, 0);
+    if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
+    {
+      glfwTerminate();
+      Utils::errorCallback(EXIT_FAILURE, "Framebuffer not complete!");
+    }
 
-  if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
-  {
-    glfwTerminate();
-    Utils::errorCallback(EXIT_FAILURE, "Framebuffer not complete!");
-  }
+    // openg coords are {-1,1} get ratio coords/pixels to pass it as uniforms in the line shaders.
+    ratioX = 2.f / virtualWidth;
+    ratioY = 2.f / virtualHeight;
 
-  // openg coords are {-1,1} get ratio coords/pixels to pass it as uniforms in the line shaders.
-  const float ratioX = 2.f / virtualWidth;
-  const float ratioY = 2.f / virtualHeight;
+    glDisable(GL_CULL_FACE);
+    glDisable(GL_DEPTH_TEST);
+    glEnable(GL_PROGRAM_POINT_SIZE);  
 
-  glDisable(GL_CULL_FACE);
-  glDisable(GL_DEPTH_TEST);
-  glEnable(GL_PROGRAM_POINT_SIZE);  
+    glMatrixMode(GL_PROJECTION);
+    glLoadIdentity();
+    glOrtho(0.0f, virtualWidth, virtualHeight, 0.0f, 0.0f, 1.0f);
 
-  // Render loop
-  while (!glfwWindowShouldClose(window))
-  {
-    www.advance();
+    SetTimer(glfwGetWin32Window(window), ID_TIMER, 16, nullptr);
+		break;
+
+	case WM_TIMER:
+    www->advance();
 
     glBindFramebuffer(GL_FRAMEBUFFER, (config.motion_blur ? framebuffer : 0));    
     glClearColor(0,0,0,1);
@@ -299,26 +325,54 @@ int main(int argc, char *argv[])
     glfwSwapBuffers(window);
     glBindVertexArray(0);
     glfwPollEvents();
-  }
+		break;
 
-  // Cleanup
-  glDeleteVertexArrays(1, &VAO);
-  glDeleteBuffers(1, &VBO);
-  glDeleteProgram(points.program);
-  glDeleteProgram(trails.program);
+	case WM_PAINT:
+    if(!window) break;
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    glClearColor(0,0,0,1);
+    glClear(GL_COLOR_BUFFER_BIT);
+    glfwSwapBuffers(window);
+		break;
 
-  glDeleteVertexArrays(1, &quadVAO);
-  glDeleteBuffers(1, &quadVBO);
-  glDeleteBuffers(1, &quadEBO);
-  glDeleteTextures(1, &texture);
-  glDeleteFramebuffers(1, &framebuffer);
-  glDeleteProgram(post.program);
+	case WM_DESTROY:
+    if(!window) break;
+    // Cleanup
+    KillTimer(glfwGetWin32Window(window),ID_TIMER);
 
-  glfwDestroyWindow(window);
+    glDeleteVertexArrays(1, &VAO);
+    glDeleteBuffers(1, &VBO);
+    glDeleteProgram(points.program);
+    glDeleteProgram(trails.program);
 
-  glfwTerminate();
+    glDeleteVertexArrays(1, &quadVAO);
+    glDeleteBuffers(1, &quadVBO);
+    glDeleteBuffers(1, &quadEBO);
+    glDeleteTextures(1, &texture);
+    glDeleteFramebuffers(1, &framebuffer);
+    glDeleteProgram(post.program);
 
-  Utils::saveConfiguration(config);
+    glfwDestroyWindow(window);
 
-  return EXIT_SUCCESS;
+    glfwTerminate();
+
+    Utils::saveConfiguration(config);
+
+		PostQuitMessage(0);
+    break;
+    
+	default:
+        break;
+	}
+	return DefScreenSaverProc(hWnd, msg, wp, lp);
+}
+
+BOOL WINAPI ScreenSaverConfigureDialog(HWND, UINT, WPARAM, LPARAM)
+{
+	return FALSE;
+}
+
+BOOL WINAPI RegisterDialogClasses(HANDLE)
+{
+    return FALSE;
 }
