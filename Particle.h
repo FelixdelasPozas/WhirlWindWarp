@@ -29,7 +29,7 @@
 class State;
 namespace Utils
 {
-  class NumberGenerator;
+    class NumberGenerator;
 }
 
 /** \struct Particle
@@ -38,13 +38,13 @@ namespace Utils
  */
 struct __attribute__((__packed__)) Particle
 {
-  float x; /** x posision.          */
-  float y; /** y position.          */
-  float r; /** red component.       */
-  float g; /** green component.     */
-  float b; /** blue component.      */
-  float a; /** alpha component.     */
-  float w; /** particle/trail width */
+    float x; /** x posision.          */
+    float y; /** y position.          */
+    float r; /** red component.       */
+    float g; /** green component.     */
+    float b; /** blue component.      */
+    float a; /** alpha component.     */
+    float w; /** particle/trail width */
 };
 
 /** \class Particle
@@ -60,13 +60,14 @@ class Particles
      * \param[in] drawTrails true to generate points for the trail and false otherwise. 
      *
      */
-    explicit Particles(State &state, Utils::NumberGenerator *generator, const Utils::Configuration &config);
+    explicit Particles(State& state, Utils::NumberGenerator* generator, const Utils::Configuration& config);
 
     /** \brief Particle class virtual destructor.
      *
      */
     virtual ~Particles()
-    {}
+    {
+    }
 
     /** \brief Advances the particles.
      * \param[in] timeIncrement Passed time since last frame.
@@ -77,8 +78,10 @@ class Particles
     /** \brief Returns the buffer pointer.
      *
      */
-    inline const float *buffer() const
-    { return m_buffer.data(); }
+    inline const float* buffer() const
+    {
+        return m_buffer.data();
+    }
 
   private:
     /** \brief Initializes the particle container with random numbers.
@@ -92,10 +95,10 @@ class Particles
      */
     void reset(const int idx);
 
-    State                      &m_state;     /** application state.                   */
-    Utils::NumberGenerator     *m_generator; /** random number generator in [-1.1].   */
-    std::vector<float>          m_buffer;    /** data buffer.                         */
-    const Utils::Configuration &m_config;    /** application configuration reference. */
+    State& m_state;                       /** application state.                   */
+    Utils::NumberGenerator* m_generator;  /** random number generator in [-1.1].   */
+    std::vector<float> m_buffer;          /** data buffer.                         */
+    const Utils::Configuration& m_config; /** application configuration reference. */
 };
 
 #endif // PARTICLE_H_

@@ -15,7 +15,7 @@
 
  You should have received a copy of the GNU General Public License
  along with this program.  If not, see <http://www.gnu.org/licenses/>.
- */
+*/
 
 #ifndef _SHADERS_H_
 #define _SHADERS_H_
@@ -123,7 +123,7 @@ void main()
 )";
 
 // Post-processing shaders
-const char* ppVertexShaderSource =  R"(
+const char* ppVertexShaderSource = R"(
 #version 330 core
 layout(location = 0) in vec2 aPos;
 out vec2 TexCoord;
@@ -150,11 +150,10 @@ void main()
 const float quadVertices[] = {
     -1.0f, 1.0f,  // Top-left
     -1.0f, -1.0f, // Bottom-left
-    1.0f, -1.0f,  // Bottom-right
-    1.0f, 1.0f    // Top-right
+    1.0f,  -1.0f, // Bottom-right
+    1.0f,  1.0f   // Top-right
 };
 
-const unsigned int quadIndices[] = {0, 1, 2,
-                                    0, 2, 3};
+const unsigned int quadIndices[] = {0, 1, 2, 0, 2, 3};
 
 #endif

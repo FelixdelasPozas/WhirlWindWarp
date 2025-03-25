@@ -29,7 +29,7 @@
 
 namespace Utils
 {
-  class NumberGenerator;
+    class NumberGenerator;
 }
 
 static const int fs = 16; /** number of forcefields.    */
@@ -40,16 +40,16 @@ static const int fs = 16; /** number of forcefields.    */
  */
 struct State
 {
-    std::string name[fs];           /** The force fields and their parameters.           */
-    bool        enabled[fs];        /** Is field on or off?                              */
-    float       var[fs];            /** Current parameter.                               */
-    float       optimum[fs];        /** Optimum (central/mean) value.                    */
-    float       acceleration[fs];   /** acceleration?                                    */
-    float       velocity[fs];       /** velocity?                                        */
-    int         numPoints;          /** Number of points.                                */
-    bool        initted;            /** true if inited and false otherwise.              */
-    bool        changedColor;       /** true if changed a point color in the last frame. */
-    int         hue;                /** hue value.                                       */
+    std::string name[fs];   /** The force fields and their parameters.           */
+    bool enabled[fs];       /** Is field on or off?                              */
+    float var[fs];          /** Current parameter.                               */
+    float optimum[fs];      /** Optimum (central/mean) value.                    */
+    float acceleration[fs]; /** acceleration?                                    */
+    float velocity[fs];     /** velocity?                                        */
+    int numPoints;          /** Number of points.                                */
+    bool initted;           /** true if inited and false otherwise.              */
+    bool changedColor;      /** true if changed a point color in the last frame. */
+    int hue;                /** hue value.                                       */
 };
 
 /** \class WindWhirlWarp
@@ -65,7 +65,8 @@ class WhirlWindWarp
      * \param[in] generator random number generator class pointer.
      *
      */
-    explicit WhirlWindWarp(const int numPoints, const Utils::Configuration &config, Utils::NumberGenerator *generator = nullptr);
+    explicit WhirlWindWarp(const int numPoints, const Utils::Configuration& config,
+                           Utils::NumberGenerator* generator = nullptr);
 
     /** \brief Updates the state and calls advance() on the scene.
      * \param[in] time_ Current time.
@@ -76,8 +77,10 @@ class WhirlWindWarp
     /** \brief Returns the buffer to use in OpenGL
      *
      */
-    inline const float *buffer() const
-    { return m_particles->buffer(); }
+    inline const float* buffer() const
+    {
+        return m_particles->buffer();
+    }
 
   private:
     /** \brief Initializes the particles buffer. 
@@ -109,10 +112,10 @@ class WhirlWindWarp
      */
     float stars_perturb(float var, float op, float damp, float force);
 
-    Utils::NumberGenerator     *m_generator; /** random number generator in [-1,1]. */
-    struct State                m_state;     /** application state.                 */
-    std::unique_ptr<Particles>  m_particles; /** particles                          */
-    const Utils::Configuration &m_config;    /** application configuration.         */
+    Utils::NumberGenerator* m_generator;    /** random number generator in [-1,1]. */
+    struct State m_state;                   /** application state.                 */
+    std::unique_ptr<Particles> m_particles; /** particles                          */
+    const Utils::Configuration& m_config;   /** application configuration.         */
 };
 
 #endif // WHIRLWINDWARP_H_
