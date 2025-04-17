@@ -3,14 +3,13 @@ cmake_minimum_required (VERSION 3.5.0)
 project(WhirlWindWarp)
 
 # Version Number
-set (WHIRLWINDWARP_VERSION_MAJOR 1)
+set (WHIRLWINDWARP_VERSION_MAJOR 2)
 set (WHIRLWINDWARP_VERSION_MINOR 0)
 set (WHIRLWINDWARP_VERSION_PATCH 0)
 
 # Find includes in corresponding build directories
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -static -Wall -Wno-deprecated -std=c++17 -mconsole -municode -m64")
-#set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -static -Wall -Wno-deprecated -std=c++17 -mwindows -municode -m64")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -static -Wall -Wno-deprecated -std=c++17 -mwindows -municode -m64")
 set(CMAKE_INCLUDE_SYSTEM_FLAG_CXX "-I system") # fixes #include_next errors.
 
 find_package(glfw3 REQUIRED)
@@ -20,7 +19,7 @@ if(DEFINED MINGW)
   configure_file("${PROJECT_SOURCE_DIR}/resources.rc.in" "${PROJECT_BINARY_DIR}/resources.rc")
   configure_file("${PROJECT_SOURCE_DIR}/version.h.in" "${PROJECT_BINARY_DIR}/version.h")
   set(CORE_SOURCES ${CORE_SOURCES} ${CMAKE_CURRENT_BINARY_DIR}/resources.rc)
-  set(CMAKE_RC_COMPILE_OBJECT "<CMAKE_RC_COMPILER> -O coff -o <OBJECT> -i <SOURCE>")
+  set(CMAKE_RC_COMPILE_OBJECT "<CMAKE_RC_COMPILER> -v --use-temp-file -O coff -Fpe-x86-64 -o <OBJECT> -i <SOURCE>")
   enable_language(RC)
 endif(DEFINED MINGW)
 
@@ -45,11 +44,9 @@ set (CORE_SOURCES
 )
 
 set(CORE_EXTERNAL_LIBS
-  glfw3
+  glfw3.a
   opengl32
-  TBB::tbb
   libscrnsavw.a
-  winmm.a
 )
   
 add_executable(WhirlWindWarp ${CORE_SOURCES})
