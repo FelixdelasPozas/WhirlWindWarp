@@ -170,7 +170,7 @@ void Particles::init()
     std::iota(index->begin(), index->end(), 0);
 
     auto resetBuffer = [&](const size_t pos) { reset(pos); };
-    std::for_each(std::execution::par_unseq, index->cbegin(), index->cend(), resetBuffer);
+    std::for_each(index->cbegin(), index->cend(), resetBuffer);
 }
 
 //--------------------------------------------------------------------
