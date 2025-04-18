@@ -26,7 +26,8 @@
 #include <vector>
 #include <math.h>
 
-class State;
+struct State;
+
 namespace Utils
 {
     class NumberGenerator;

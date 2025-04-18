@@ -48,12 +48,14 @@
 enum class Mode: char { SAVER = 0, CHILD = 1, CONFIG = 2 };
 static Mode g_mode = Mode::CONFIG;
 
+//---------------------------------------------------------------------------------------
 LRESULT WINAPI ScreenSaverProc (HWND hwnd, UINT iMsg, WPARAM wparam, LPARAM lparam)
 {
     return DefWindowProc (hwnd, iMsg, wparam, lparam);
 }
 
-void wwwSaver(HINSTANCE parent)
+//---------------------------------------------------------------------------------------
+void ScreenSaver()
 {
     int virtualWidth = 0;
     int virtualHeight = 0;
@@ -71,34 +73,27 @@ void wwwSaver(HINSTANCE parent)
        Utils::errorCallback(EXIT_FAILURE, "Failed to initialize GLFW");
     }
 
-    // if(parent)
-    // {
+    int monitorCount = 0;
+    const auto glfwmonitors = glfwGetMonitors(&monitorCount);
+    if (!glfwmonitors) {
+        glfwTerminate();
+        Utils::errorCallback(EXIT_FAILURE, "No monitors detected");
+    }
 
-    // }
-    // else
-    // {
-        int monitorCount = 0;
-        const auto glfwmonitors = glfwGetMonitors(&monitorCount);
-        if (!glfwmonitors) {
-            glfwTerminate();
-            Utils::errorCallback(EXIT_FAILURE, "No monitors detected");
-        }
+    xMin = std::numeric_limits<int>::max();
+    yMin = std::numeric_limits<int>::max();
 
-        xMin = std::numeric_limits<int>::max();
-        yMin = std::numeric_limits<int>::max();
+    for (int i = 0; i < monitorCount; ++i) {
+        const auto glfwmonitor = glfwmonitors[i];
+        int xPos, yPos;
+        glfwGetMonitorPos(glfwmonitor, &xPos, &yPos);
+        const auto res = glfwGetVideoMode(glfwmonitor);
 
-        for (int i = 0; i < monitorCount; ++i) {
-            const auto glfwmonitor = glfwmonitors[i];
-            int xPos, yPos;
-            glfwGetMonitorPos(glfwmonitor, &xPos, &yPos);
-            const auto res = glfwGetVideoMode(glfwmonitor);
-
-            xMin = std::min(xMin, xPos);
-            yMin = std::min(yMin, yPos);
-            virtualWidth = std::max(virtualWidth, xPos + res->width);
-            virtualHeight = std::max(virtualHeight, yPos + res->height);
-        }
-    // }
+        xMin = std::min(xMin, xPos);
+        yMin = std::min(yMin, yPos);
+        virtualWidth = std::max(virtualWidth, xPos + res->width);
+        virtualHeight = std::max(virtualHeight, yPos + res->height);
+    }
 
     const int numPoints = (virtualWidth * virtualHeight) / config.pixelsPerPoint;
 
@@ -121,13 +116,14 @@ void wwwSaver(HINSTANCE parent)
         Utils::errorCallback(EXIT_FAILURE, msg.c_str());
     }
 
-
     glfwMakeContextCurrent(window);
     glfwSetKeyCallback(window, Utils::glfwKeyCallback);
+    glfwSetWindowFocusCallback(window, Utils::glfwFocusCallback);
     glfwSetCursorPosCallback(window, Utils::glfwMousePosCallback);
     glfwSetMouseButtonCallback(window, Utils::glfwMouseButtonCallback);
-    //glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+    glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
     glfwSetInputMode(window, GLFW_RAW_MOUSE_MOTION, GLFW_TRUE);
+    glfwSetWindowOpacity(window, 1.f);
     glfwSwapInterval(1);
 
     if (load_gl_functions() > 0) {
@@ -240,6 +236,7 @@ void wwwSaver(HINSTANCE parent)
     glOrtho(0.0f, virtualWidth, virtualHeight, 0.0f, 0.0f, 1.0f);
 
     while(!glfwWindowShouldClose(window)) {
+        glfwFocusWindow(window);
         www.advance();
 
         glBindFramebuffer(GL_FRAMEBUFFER, (config.motion_blur ? framebuffer : 0));
@@ -339,14 +336,12 @@ void wwwSaver(HINSTANCE parent)
     glDeleteProgram(post.program);
 
     glfwDestroyWindow(window);
-
     glfwTerminate();
-
-    Utils::saveConfiguration(config);
 
     PostQuitMessage(0);
 }
 
+//---------------------------------------------------------------------------------------
 BOOL CALLBACK ConfigureDialogProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
     TCHAR PointSizes[3][2] =  
@@ -447,6 +442,7 @@ BOOL CALLBACK ConfigureDialogProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM
     return TRUE; 
 }
 
+//---------------------------------------------------------------------------------------
 BOOL WINAPI RegisterDialogClasses(HANDLE hInst)
 {
     return TRUE;
@@ -456,7 +452,6 @@ int APIENTRY wWinMain(HINSTANCE hInstance, HINSTANCE, LPWSTR lpCmdLine, int)
 {
     try {
         LPCTSTR cmdline = lpCmdLine;
-        HINSTANCE parentHWND = nullptr;
 
         bool finished = false;
         while (*cmdline != '\0' && !finished) {
@@ -470,16 +465,6 @@ int APIENTRY wWinMain(HINSTANCE hInstance, HINSTANCE, LPWSTR lpCmdLine, int)
                 case TEXT('p'): // Show preview in window (handle in cmd)
                 case TEXT('P'):
                 {
-                    do { /* advance to parent handle */
-                        cmdline++;
-                    } while (TEXT(' ') == *cmdline);
-                    parentHWND = (HINSTANCE)(wcstoull(cmdline, nullptr, 10));
-                    if(!parentHWND || !GetParent((HWND)parentHWND))
-                    {
-                        MessageBox(nullptr, TEXT("Unable to get parent handle."), TEXT("WhirlWindWarp screensaver"), MB_OK | MB_ICONINFORMATION);
-                        return EXIT_FAILURE;
-                    }
-
                     g_mode = Mode::CHILD;
                     finished = true;
                     break;
@@ -505,7 +490,7 @@ int APIENTRY wWinMain(HINSTANCE hInstance, HINSTANCE, LPWSTR lpCmdLine, int)
         {
             case Mode::CHILD:
             case Mode::SAVER:
-                wwwSaver(parentHWND);
+                ScreenSaver();
                 break;
             default:
             case Mode::CONFIG:

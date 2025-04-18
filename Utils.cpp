@@ -138,6 +138,13 @@ void Utils::glfwKeyCallback(GLFWwindow* window, int, int, int, int)
 }
 
 //----------------------------------------------------------------------------
+void Utils::glfwFocusCallback(GLFWwindow *window, int inFocus)
+{
+    if(!inFocus)
+        glfwFocusWindow(window);
+}
+
+//----------------------------------------------------------------------------
 void Utils::glfwMousePosCallback(GLFWwindow* window, double xpos, double ypos)
 {
     static double x = -1;

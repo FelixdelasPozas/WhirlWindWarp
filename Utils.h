@@ -28,7 +28,7 @@
 #include <random>
 #include <mutex>
 
-class GLFWwindow;
+struct GLFWwindow;
 
 namespace Utils
 {
@@ -205,6 +205,13 @@ namespace Utils
     *
     */
     void glfwMouseButtonCallback(GLFWwindow* window, int /* button */, int /* action */, int /* mods */);
+
+    /** void \brief GLFW focus callback.
+    * \param[in] window GLFW window pointer.
+    * \param[in] inFocus True if the window is in focus, and false otherwise. 
+    *
+    */
+    void glfwFocusCallback(GLFWwindow *window, int inFocus);
 
     /** \brief Helper method to load the shader and check for errors.
      * \param[in] source Shader source code.

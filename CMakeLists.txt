@@ -13,7 +13,6 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -static -Wall -Wno-deprecated -std=c++17
 set(CMAKE_INCLUDE_SYSTEM_FLAG_CXX "-I system") # fixes #include_next errors.
 
 find_package(glfw3 REQUIRED)
-find_package(TBB REQUIRED)
 
 if(DEFINED MINGW)
   configure_file("${PROJECT_SOURCE_DIR}/resources.rc.in" "${PROJECT_BINARY_DIR}/resources.rc")
